@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
+const http = require('http');
 const { EventEmitter } = require('events');
 
 class RadioStream extends EventEmitter {
@@ -12,7 +14,7 @@ class RadioStream extends EventEmitter {
     this.playing = false;
     this.jingles = [];
     this.trackCount = 0;
-    this.jingleInterval = 3; // Jingle toutes les 3 pistes
+    this.jingleInterval = 3;
   }
 
   addClient(res) {
@@ -24,7 +26,7 @@ class RadioStream extends EventEmitter {
       'X-Audiocast-Name': 'Radio Sahib El Qawl'
     });
     this.clients.push(res);
-    console.log(`🎧 Nouvel auditeur connecté (${this.clients.length} total)`);
+    console.log(`🎧 Auditeur connecté (${this.clients.length} total)`);
     res.on('close', () => {
       this.clients = this.clients.filter(c => c !== res);
       console.log(`👋 Auditeur déconnecté (${this.clients.length} restants)`);
@@ -44,21 +46,20 @@ class RadioStream extends EventEmitter {
     this.jingles = jingles || tracks.filter(t => t.isJingle);
     this.trackIndex = 0;
     this.trackCount = 0;
-    console.log(`📋 Playlist chargée: ${this.playlist.length} pistes, ${this.jingles.length} jingles`);
+    console.log(`📋 Playlist: ${this.playlist.length} pistes, ${this.jingles.length} jingles`);
   }
 
   async playNext() {
     if (!this.playlist.length) {
-      console.log('⚠️ Playlist vide');
-      setTimeout(() => this.playNext(), 5000);
+      console.log('⚠️ Playlist vide — en attente');
+      setTimeout(() => this.playNext(), 10000);
       return;
     }
 
-    // Jouer un jingle toutes les X pistes
     if (this.trackCount > 0 && this.trackCount % this.jingleInterval === 0 && this.jingles.length) {
       const jingle = this.jingles[Math.floor(Math.random() * this.jingles.length)];
       console.log(`🎺 Jingle: ${jingle.title}`);
-      await this.playFile(jingle);
+      await this.playTrack(jingle);
     }
 
     const track = this.playlist[this.trackIndex];
@@ -67,24 +68,39 @@ class RadioStream extends EventEmitter {
     console.log(`🎵 En cours: ${track.title}`);
     this.currentTrack = track;
     this.emit('trackChange', track);
-    await this.playFile(track);
+    await this.playTrack(track);
     this.playNext();
   }
 
-  playFile(track) {
+  playTrack(track) {
     return new Promise((resolve) => {
-      const filePath = path.join(__dirname, 'uploads', track.filename);
-      if (!fs.existsSync(filePath)) {
-        console.log(`❌ Fichier introuvable: ${track.filename}`);
-        return resolve();
+      // Si URL Cloudinary
+      if (track.url) {
+        this.streamFromUrl(track.url, resolve);
+      } else {
+        // Fichier local
+        const filePath = path.join(__dirname, 'uploads', track.filename);
+        if (!fs.existsSync(filePath)) {
+          console.log(`❌ Fichier introuvable: ${track.filename}`);
+          return resolve();
+        }
+        const stream = fs.createReadStream(filePath, { highWaterMark: 16384 });
+        stream.on('data', chunk => this.broadcast(chunk));
+        stream.on('end', resolve);
+        stream.on('error', () => resolve());
       }
-      const stream = fs.createReadStream(filePath, { highWaterMark: 16384 });
-      stream.on('data', chunk => this.broadcast(chunk));
-      stream.on('end', resolve);
-      stream.on('error', (err) => {
-        console.log(`❌ Erreur lecture: ${err.message}`);
-        resolve();
-      });
+    });
+  }
+
+  streamFromUrl(url, resolve) {
+    const protocol = url.startsWith('https') ? https : http;
+    protocol.get(url, (response) => {
+      response.on('data', chunk => this.broadcast(chunk));
+      response.on('end', resolve);
+      response.on('error', () => resolve());
+    }).on('error', (err) => {
+      console.log(`❌ Erreur stream URL: ${err.message}`);
+      resolve();
     });
   }
 
@@ -99,6 +115,7 @@ class RadioStream extends EventEmitter {
   updatePlaylist(tracks, jingles) {
     this.playlist = tracks.filter(t => !t.isJingle);
     this.jingles = jingles || tracks.filter(t => t.isJingle);
+    this.trackIndex = 0;
     console.log(`🔄 Playlist mise à jour: ${this.playlist.length} pistes`);
   }
 
