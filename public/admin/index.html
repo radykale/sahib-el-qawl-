@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التحكم — راديو صاحب القول</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+    * { margin:0;padding:0;box-sizing:border-box; }
+    :root { --gold:#FFD700;--gold2:#c9a84c;--dark:#000;--dark2:#0a0a0a;--dark3:#111; }
+    body { background:var(--dark);color:white;font-family:'Amiri','Segoe UI',Arial,sans-serif;min-height:100vh; }
+
+    /* LOGIN */
+    .login-screen { min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#0a0500,#000); }
+    .login-card { background:#0a0a0a;border:1px solid rgba(255,215,0,0.3);border-radius:20px;padding:50px 40px;text-align:center;width:340px;box-shadow:0 0 50px rgba(255,215,0,0.1); }
+    .login-title { color:var(--gold);font-size:1.8em;margin-bottom:8px; }
+    .login-sub { color:rgba(255,255,255,0.4);font-size:0.85em;margin-bottom:30px; }
+    .login-input { width:100%;background:#111;border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:12px;color:white;font-size:1em;margin-bottom:15px;outline:none;text-align:center; }
+    .login-input:focus { border-color:var(--gold); }
+    .login-btn { width:100%;background:var(--gold);border:none;border-radius:10px;padding:13px;color:#000;font-size:1em;font-weight:bold;cursor:pointer; }
+    .login-error { color:#ff4444;font-size:0.85em;margin-top:10px; }
+
+    /* LAYOUT */
+    .dashboard { display:none; }
+    header { background:#000;border-bottom:1px solid rgba(255,215,0,0.15);padding:15px 30px;display:flex;justify-content:space-between;align-items:center; }
+    .header-logo { color:var(--gold);font-size:1.3em; }
+    .tabs { display:flex;gap:5px;padding:15px 30px;background:#000;border-bottom:1px solid rgba(255,215,0,0.1);overflow-x:auto; }
+    .tab { background:transparent;border:1px solid rgba(255,215,0,0.2);border-radius:8px;padding:9px 18px;color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.88em;white-space:nowrap;transition:all 0.2s; }
+    .tab.active { background:rgba(255,215,0,0.15);border-color:var(--gold);color:var(--gold); }
+    .tab-content { display:none;max-width:1100px;margin:25px auto;padding:0 20px; }
+    .tab-content.active { display:block; }
+
+    /* CARDS */
+    .card { background:#0a0a0a;border:1px solid rgba(255,215,0,0.12);border-radius:15px;padding:25px;margin-bottom:20px; }
+    .card-title { color:var(--gold);font-size:1.1em;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid rgba(255,215,0,0.12); }
+
+    /* FORMS */
+    .form-row { display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px; }
+    .form-row.full { grid-template-columns:1fr; }
+    .form-row.three { grid-template-columns:1fr 1fr 1fr; }
+    .form-group { display:flex;flex-direction:column;gap:6px; }
+    .form-label { color:var(--gold2);font-size:0.83em; }
+    .form-input,.form-select { background:#111;border:1px solid rgba(255,215,0,0.2);border-radius:8px;padding:10px;color:white;font-size:0.9em;outline:none;font-family:'Amiri',serif; }
+    .form-input:focus,.form-select:focus { border-color:var(--gold); }
+    .form-select option { background:#111; }
+
+    /* BTNS */
+    .btn-gold { background:var(--gold);border:none;border-radius:8px;padding:10px 22px;color:#000;font-weight:bold;cursor:pointer;font-size:0.9em;transition:all 0.2s; }
+    .btn-gold:hover { background:#fff; }
+    .btn-outline { background:transparent;border:1px solid rgba(255,215,0,0.3);border-radius:8px;padding:8px 16px;color:var(--gold);cursor:pointer;font-size:0.85em; }
+    .btn-red { background:rgba(139,0,0,0.4);border:1px solid #8b0000;border-radius:6px;padding:6px 12px;color:#ff6666;cursor:pointer;font-size:0.8em; }
+    .btn-green { background:rgba(0,139,0,0.4);border:1px solid #008b00;border-radius:6px;padding:6px 12px;color:#00ff00;cursor:pointer;font-size:0.8em; }
+    .btn-danger { background:rgba(139,0,0,0.3);border:1px solid #8b0000;border-radius:8px;padding:8px 16px;color:#ff6666;cursor:pointer;font-size:0.85em; }
+
+    /* UPLOAD */
+    .upload-zone { border:2px dashed rgba(255,215,0,0.3);border-radius:12px;padding:25px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:15px; }
+    .upload-zone:hover { border-color:var(--gold);background:rgba(255,215,0,0.05); }
+    .upload-zone input { display:none; }
+
+    /* TRACKS */
+    .tracks-list { display:flex;flex-direction:column;gap:8px; }
+    .track-item { background:#111;border:1px solid rgba(255,215,0,0.1);border-radius:10px;padding:12px 15px;display:flex;align-items:center;gap:10px; }
+    .track-item .track-info { flex:1; }
+    .track-title { color:white;font-size:0.92em; }
+    .track-meta { color:rgba(255,255,255,0.35);font-size:0.75em;margin-top:2px; }
+    .badge { background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.2);border-radius:5px;padding:3px 9px;color:var(--gold2);font-size:0.75em; }
+    .badge-jingle { background:rgba(255,100,0,0.15);border-color:rgba(255,100,0,0.3);color:#ff9944; }
+
+    /* PLAYLISTS */
+    .playlist-item { background:#111;border:1px solid rgba(255,215,0,0.12);border-radius:12px;padding:15px;margin-bottom:12px; }
+    .playlist-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:10px; }
+    .playlist-name { color:var(--gold);font-size:1em; }
+    .playlist-tracks { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px; }
+    .playlist-track-badge { background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:5px;padding:3px 8px;font-size:0.75em;color:rgba(255,255,255,0.6);cursor:pointer; }
+    .playlist-track-badge:hover { border-color:#ff4444;color:#ff4444; }
+    .tracks-selector { background:#0a0a0a;border:1px solid rgba(255,215,0,0.15);border-radius:8px;padding:12px;margin-bottom:10px;max-height:200px;overflow-y:auto; }
+    .track-checkbox { display:flex;align-items:center;gap:8px;padding:6px;cursor:pointer;border-radius:5px; }
+    .track-checkbox:hover { background:rgba(255,255,255,0.04); }
+    .track-checkbox input { accent-color:var(--gold); }
+
+    /* SCHEDULE */
+    .schedule-grid { overflow-x:auto; }
+    .schedule-table { width:100%;border-collapse:collapse;min-width:700px; }
+    .schedule-table th { background:rgba(255,215,0,0.1);color:var(--gold);padding:10px;text-align:center;font-size:0.85em;border:1px solid rgba(255,215,0,0.1); }
+    .schedule-table td { border:1px solid rgba(255,255,255,0.06);padding:6px;text-align:center;vertical-align:top; }
+    .schedule-table .hour-col { color:var(--gold2);font-size:0.82em;background:#0a0a0a;min-width:60px; }
+    .schedule-cell { background:rgba(255,215,0,0.08);border-radius:5px;padding:4px 6px;font-size:0.75em;color:white;cursor:pointer;position:relative; }
+    .schedule-cell:hover { background:rgba(255,215,0,0.15); }
+    .schedule-empty { color:rgba(255,255,255,0.15);font-size:0.75em;cursor:pointer;padding:4px; }
+    .schedule-empty:hover { color:var(--gold);background:rgba(255,215,0,0.05);border-radius:5px; }
+
+    /* STATS */
+    .stats-row { display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:25px; }
+    .stat-card { background:#0a0a0a;border:1px solid rgba(255,215,0,0.12);border-radius:12px;padding:20px;text-align:center; }
+    .stat-num { color:var(--gold);font-size:2em;font-weight:bold; }
+    .stat-label { color:rgba(255,255,255,0.4);font-size:0.8em;margin-top:5px; }
+
+    .success-msg { color:#00cc00;font-size:0.85em;margin-top:8px; }
+    .empty-msg { color:rgba(255,255,255,0.3);text-align:center;padding:20px;font-size:0.88em; }
+
+    @media(max-width:700px){ .form-row,.form-row.three{grid-template-columns:1fr;} .stats-row{grid-template-columns:1fr 1fr;} }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div style="font-size:3em;margin-bottom:15px;">📻</div>
+    <div class="login-title">لوحة التحكم</div>
+    <div class="login-sub">راديو صاحب القول</div>
+    <input class="login-input" type="password" id="passwordInput" placeholder="كلمة المرور" onkeypress="if(event.key==='Enter')login()">
+    <button class="login-btn" onclick="login()">دخول ←</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dashboard" id="dashboard">
+  <header>
+    <div class="header-logo">🎙️ راديو صاحب القول — لوحة التحكم</div>
+    <div style="display:flex;gap:10px;">
+      <a class="btn-outline" href="/" target="_blank">🌐 الموقع</a>
+      <button class="btn-danger" onclick="logout()">خروج</button>
+    </div>
+  </header>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('overview')">📊 نظرة عامة</button>
+    <button class="tab" onclick="showTab('emission')">🔴 البث الحالي</button>
+    <button class="tab" onclick="showTab('upload')">⬆️ رفع ملفات</button>
+    <button class="tab" onclick="showTab('library')">🎵 المكتبة</button>
+    <button class="tab" onclick="showTab('playlists')">📋 البلايليست</button>
+    <button class="tab" onclick="showTab('schedule')">📅 البرنامج</button>
+  </div>
+
+  <!-- TAB: OVERVIEW -->
+  <div class="tab-content active" id="tab-overview">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="statTracks">0</div><div class="stat-label">ملفات صوتية</div></div>
+      <div class="stat-card"><div class="stat-num" id="statJingles">0</div><div class="stat-label">جينغلات</div></div>
+      <div class="stat-card"><div class="stat-num" id="statPlaylists">0</div><div class="stat-label">بلايليست</div></div>
+      <div class="stat-card"><div class="stat-num">🔴</div><div class="stat-label">بث مباشر</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🎙️ البث الحالي</div>
+      <div style="font-size:1.3em;color:var(--gold);margin-bottom:10px;" id="overviewEmission">—</div>
+      <div style="color:rgba(255,255,255,0.4);font-size:0.85em;" id="overviewCategory"></div>
+    </div>
+  </div>
+
+  <!-- TAB: EMISSION -->
+  <div class="tab-content" id="tab-emission">
+    <div class="card">
+      <div class="card-title">🔴 تغيير البث الحالي</div>
+      <div style="background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.2);border-radius:10px;padding:15px;margin-bottom:20px;">
+        <div style="color:rgba(255,255,255,0.5);font-size:0.83em;margin-bottom:5px;">يُبث الآن</div>
+        <div style="color:var(--gold);font-size:1.1em;" id="currentEmissionTitle">—</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">عنوان البث</label>
+          <input class="form-input" id="emissionTitle" placeholder="عنوان البرنامج أو التلاوة">
+        </div>
+        <div class="form-group">
+          <label class="form-label">التصنيف</label>
+          <select class="form-select" id="emissionCategory">
+            <option>📖 قرآن كريم</option>
+            <option>📜 أحاديث نبوية</option>
+            <option>🎵 أناشيد إسلامية</option>
+            <option>🎓 دروس دينية</option>
+            <option>🤲 أذكار ودعاء</option>
+            <option>🎺 جينغل</option>
+            <option>🗣️ برنامج حواري</option>
+            <option>📻 عام</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-gold" onclick="updateEmission()">✅ تحديث البث</button>
+      <div class="success-msg" id="emissionMsg"></div>
+    </div>
+  </div>
+
+  <!-- TAB: UPLOAD -->
+  <div class="tab-content" id="tab-upload">
+    <div class="card">
+      <div class="card-title">⬆️ رفع ملف صوتي</div>
+      <div class="upload-zone" onclick="document.getElementById('audioFile').click()">
+        <input type="file" id="audioFile" accept=".mp3,.wav,.ogg,.m4a" onchange="fileSelected(this)">
+        <div style="font-size:2.5em;margin-bottom:8px;">🎵</div>
+        <div style="color:rgba(255,255,255,0.5);font-size:0.9em;">اضغط لاختيار ملف صوتي<br><span style="color:var(--gold)">MP3 • WAV • OGG • M4A</span></div>
+        <div id="fileName" style="color:var(--gold);margin-top:10px;font-size:0.9em;"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">عنوان الملف</label>
+          <input class="form-input" id="trackTitle" placeholder="عنوان التلاوة أو البرنامج">
+        </div>
+        <div class="form-group">
+          <label class="form-label">التصنيف</label>
+          <select class="form-select" id="trackCategory">
+            <option value="قرآن كريم">📖 قرآن كريم</option>
+            <option value="أحاديث نبوية">📜 أحاديث نبوية</option>
+            <option value="أناشيد إسلامية">🎵 أناشيد إسلامية</option>
+            <option value="دروس دينية">🎓 دروس دينية</option>
+            <option value="أذكار ودعاء">🤲 أذكار ودعاء</option>
+            <option value="جينغل">🎺 جينغل</option>
+            <option value="برنامج حواري">🗣️ برنامج حواري</option>
+            <option value="عام">📻 عام</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="isJingle" style="accent-color:var(--gold)"> 
+            🎺 هذا ملف جينغل (يُشغَّل تلقائياً بين البرامج)
+          </label>
+        </div>
+      </div>
+      <button class="btn-gold" onclick="uploadTrack()">⬆️ رفع الملف</button>
+      <div class="success-msg" id="uploadMsg"></div>
+    </div>
+  </div>
+
+  <!-- TAB: LIBRARY -->
+  <div class="tab-content" id="tab-library">
+    <div class="card">
+      <div class="card-title">🎵 المكتبة الصوتية</div>
+      <div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;">
+        <button class="btn-outline" onclick="filterTracks('all')">الكل</button>
+        <button class="btn-outline" onclick="filterTracks('قرآن كريم')">📖 قرآن</button>
+        <button class="btn-outline" onclick="filterTracks('أحاديث نبوية')">📜 أحاديث</button>
+        <button class="btn-outline" onclick="filterTracks('أناشيد إسلامية')">🎵 أناشيد</button>
+        <button class="btn-outline" onclick="filterTracks('دروس دينية')">🎓 دروس</button>
+        <button class="btn-outline" onclick="filterTracks('جينغل')">🎺 جينغلات</button>
+      </div>
+      <div class="tracks-list" id="tracksList"></div>
+    </div>
+  </div>
+
+  <!-- TAB: PLAYLISTS -->
+  <div class="tab-content" id="tab-playlists">
+    <div class="card">
+      <div class="card-title">➕ إنشاء بلايليست جديدة</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">اسم البلايليست</label>
+          <input class="form-input" id="playlistName" placeholder="مثال: برنامج الفجر">
+        </div>
+        <div class="form-group">
+          <label class="form-label">التصنيف الرئيسي</label>
+          <select class="form-select" id="playlistCategory">
+            <option value="قرآن كريم">📖 قرآن كريم</option>
+            <option value="أحاديث نبوية">📜 أحاديث نبوية</option>
+            <option value="أناشيد إسلامية">🎵 أناشيد إسلامية</option>
+            <option value="دروس دينية">🎓 دروس دينية</option>
+            <option value="أذكار ودعاء">🤲 أذكار ودعاء</option>
+            <option value="مختلط">🎶 مختلط</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:15px;">
+        <label class="form-label">اختر الملفات الصوتية</label>
+        <div class="tracks-selector" id="tracksSelector">
+          <div class="empty-msg">ارفع ملفات أولاً من تبويب "رفع ملفات"</div>
+        </div>
+      </div>
+      <button class="btn-gold" onclick="createPlaylist()">✅ إنشاء البلايليست</button>
+      <div class="success-msg" id="playlistMsg"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 البلايليست المحفوظة</div>
+      <div id="playlistsList"><div class="empty-msg">لا توجد بلايليست بعد</div></div>
+    </div>
+  </div>
+
+  <!-- TAB: SCHEDULE -->
+  <div class="tab-content" id="tab-schedule">
+    <div class="card">
+      <div class="card-title">📅 جدول البرامج الأسبوعي</div>
+      <p style="color:rgba(255,255,255,0.4);font-size:0.85em;margin-bottom:15px;">اضغط على أي خلية لتعيين بلايليست لها</p>
+      <div class="schedule-grid">
+        <table class="schedule-table" id="scheduleTable"></table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL SCHEDULE -->
+<div id="scheduleModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#111;border:1px solid rgba(255,215,0,0.3);border-radius:15px;padding:30px;width:350px;">
+    <div style="color:var(--gold);font-size:1.1em;margin-bottom:20px;" id="modalTitle">تعيين بلايليست</div>
+    <select class="form-select" id="modalPlaylist" style="width:100%;margin-bottom:15px;">
+      <option value="">— بلا بلايليست —</option>
+    </select>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-gold" style="flex:1" onclick="saveSchedule()">حفظ</button>
+      <button class="btn-outline" onclick="closeModal()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+const DAYS_AR = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+let allTracks = [];
+let allPlaylists = [];
+let allSchedule = {};
+let currentFilter = 'all';
+let modalDay = null;
+let modalHour = null;
+
+// ── AUTH ──────────────────────────────────────────────
+async function login() {
+  const pwd = document.getElementById('passwordInput').value;
+  const res = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pwd}) });
+  if (res.ok) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadAll();
+  } else {
+    document.getElementById('loginError').textContent = '❌ كلمة المرور غير صحيحة';
+  }
+}
+async function logout() { await fetch('/api/admin/logout',{method:'POST'}); location.reload(); }
+
+// ── TABS ──────────────────────────────────────────────
+function showTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'playlists') renderTracksSelector();
+  if (tab === 'schedule') renderSchedule();
+}
+
+// ── LOAD ALL ──────────────────────────────────────────
+async function loadAll() {
+  await loadEmission();
+  await loadTracks();
+  await loadPlaylists();
+  await loadSchedule();
+  renderStats();
+}
+
+async function loadEmission() {
+  const res = await fetch('/api/emission');
+  const data = await res.json();
+  document.getElementById('currentEmissionTitle').textContent = data.title || '—';
+  document.getElementById('overviewEmission').textContent = data.title || '—';
+  document.getElementById('overviewCategory').textContent = data.category || '';
+  document.getElementById('emissionTitle').value = data.title || '';
+}
+
+async function loadTracks() {
+  const res = await fetch('/api/tracks');
+  allTracks = await res.json();
+  renderTracks();
+}
+
+async function loadPlaylists() {
+  const res = await fetch('/api/playlists');
+  allPlaylists = await res.json();
+  renderPlaylists();
+}
+
+async function loadSchedule() {
+  const res = await fetch('/api/schedule');
+  allSchedule = await res.json();
+}
+
+function renderStats() {
+  document.getElementById('statTracks').textContent = allTracks.filter(t => !t.isJingle).length;
+  document.getElementById('statJingles').textContent = allTracks.filter(t => t.isJingle).length;
+  document.getElementById('statPlaylists').textContent = allPlaylists.length;
+}
+
+// ── EMISSION ──────────────────────────────────────────
+async function updateEmission() {
+  const title = document.getElementById('emissionTitle').value.trim();
+  const category = document.getElementById('emissionCategory').value;
+  if (!title) return;
+  await fetch('/api/admin/emission', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title,category}) });
+  document.getElementById('currentEmissionTitle').textContent = title;
+  document.getElementById('overviewEmission').textContent = title;
+  showMsg('emissionMsg', '✅ تم التحديث!');
+}
+
+// ── UPLOAD ────────────────────────────────────────────
+function fileSelected(input) {
+  if (input.files[0]) {
+    document.getElementById('fileName').textContent = '📎 ' + input.files[0].name;
+    if (!document.getElementById('trackTitle').value)
+      document.getElementById('trackTitle').value = input.files[0].name.replace(/\.[^.]+$/,'');
+  }
+}
+
+async function uploadTrack() {
+  const file = document.getElementById('audioFile').files[0];
+  if (!file) { alert('اختر ملفاً أولاً'); return; }
+  const fd = new FormData();
+  fd.append('audio', file);
+  fd.append('title', document.getElementById('trackTitle').value || file.name);
+  fd.append('category', document.getElementById('trackCategory').value);
+  fd.append('isJingle', document.getElementById('isJingle').checked);
+  showMsg('uploadMsg','⏳ جاري الرفع...');
+  const res = await fetch('/api/admin/upload', { method:'POST', body:fd });
+  if (res.ok) {
+    showMsg('uploadMsg','✅ تم الرفع بنجاح!');
+    document.getElementById('audioFile').value = '';
+    document.getElementById('fileName').textContent = '';
+    document.getElementById('trackTitle').value = '';
+    document.getElementById('isJingle').checked = false;
+    await loadTracks();
+    renderStats();
+  } else { showMsg('uploadMsg','❌ فشل الرفع'); }
+}
+
+// ── TRACKS ────────────────────────────────────────────
+function filterTracks(cat) {
+  currentFilter = cat;
+  renderTracks();
+}
+
+function renderTracks() {
+  const list = document.getElementById('tracksList');
+  let tracks = currentFilter === 'all' ? allTracks : allTracks.filter(t => t.category === currentFilter);
+  if (!tracks.length) { list.innerHTML = '<div class="empty-msg">لا توجد ملفات في هذا التصنيف</div>'; return; }
+  list.innerHTML = tracks.map(t => `
+    <div class="track-item">
+      <div style="font-size:1.3em">${t.isJingle ? '🎺' : '🎵'}</div>
+      <div class="track-info">
+        <div class="track-title">${t.title}</div>
+        <div class="track-meta">${t.originalName} • ${(t.size/1024/1024).toFixed(1)}MB</div>
+      </div>
+      <span class="badge ${t.isJingle?'badge-jingle':''}">${t.category}</span>
+      <button class="btn-green" onclick="setAsLive('${t.title.replace(/'/g,"\\'")}','${t.category}')">🔴 بث</button>
+      <button class="btn-red" onclick="deleteTrack(${t.id})">🗑️</button>
+    </div>
+  `).join('');
+}
+
+async function deleteTrack(id) {
+  if (!confirm('حذف هذا الملف؟')) return;
+  await fetch('/api/admin/track/'+id, {method:'DELETE'});
+  await loadTracks();
+  renderStats();
+}
+
+async function setAsLive(title, category) {
+  await fetch('/api/admin/emission', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title,category}) });
+  document.getElementById('currentEmissionTitle').textContent = title;
+  document.getElementById('overviewEmission').textContent = title;
+  showMsg('emissionMsg','✅ تم تعيين البث!');
+}
+
+// ── PLAYLISTS ─────────────────────────────────────────
+function renderTracksSelector() {
+  const sel = document.getElementById('tracksSelector');
+  if (!allTracks.length) { sel.innerHTML = '<div class="empty-msg">ارفع ملفات أولاً</div>'; return; }
+  sel.innerHTML = allTracks.map(t => `
+    <label class="track-checkbox">
+      <input type="checkbox" value="${t.id}" class="playlist-track-check">
+      ${t.isJingle?'🎺':'🎵'} ${t.title} <span style="color:rgba(255,255,255,0.3);font-size:0.8em">${t.category}</span>
+    </label>
+  `).join('');
+}
+
+async function createPlaylist() {
+  const name = document.getElementById('playlistName').value.trim();
+  if (!name) { alert('أدخل اسم البلايليست'); return; }
+  const checked = [...document.querySelectorAll('.playlist-track-check:checked')].map(c => parseInt(c.value));
+  const category = document.getElementById('playlistCategory').value;
+  const res = await fetch('/api/admin/playlist', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, category, trackIds: checked}) });
+  if (res.ok) {
+    showMsg('playlistMsg','✅ تم إنشاء البلايليست!');
+    document.getElementById('playlistName').value = '';
+    document.querySelectorAll('.playlist-track-check').forEach(c => c.checked = false);
+    await loadPlaylists();
+    renderStats();
+  }
+}
+
+function renderPlaylists() {
+  const list = document.getElementById('playlistsList');
+  if (!allPlaylists.length) { list.innerHTML = '<div class="empty-msg">لا توجد بلايليست بعد</div>'; return; }
+  list.innerHTML = allPlaylists.map(p => {
+    const tracks = allTracks.filter(t => p.trackIds.includes(t.id));
+    return `
+      <div class="playlist-item">
+        <div class="playlist-header">
+          <div class="playlist-name">📋 ${p.name} <span style="color:rgba(255,255,255,0.3);font-size:0.8em">(${tracks.length} ملف)</span></div>
+          <button class="btn-red" onclick="deletePlaylist(${p.id})">🗑️ حذف</button>
+        </div>
+        <div class="playlist-tracks">
+          ${tracks.map(t => `<span class="playlist-track-badge">${t.isJingle?'🎺':'🎵'} ${t.title}</span>`).join('')}
+          ${!tracks.length ? '<span style="color:rgba(255,255,255,0.3);font-size:0.8em">لا توجد ملفات</span>' : ''}
+        </div>
+        <span class="badge">${p.category}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+async function deletePlaylist(id) {
+  if (!confirm('حذف هذه البلايليست؟')) return;
+  await fetch('/api/admin/playlist/'+id, {method:'DELETE'});
+  await loadPlaylists();
+  renderStats();
+}
+
+// ── SCHEDULE ──────────────────────────────────────────
+function renderSchedule() {
+  const table = document.getElementById('scheduleTable');
+  let html = '<tr><th>الساعة</th>';
+  DAYS_AR.forEach(d => html += `<th>${d}</th>`);
+  html += '</tr>';
+  for (let h = 0; h < 24; h++) {
+    html += `<tr><td class="hour-col">${String(h).padStart(2,'0')}:00</td>`;
+    DAYS.forEach(day => {
+      const pid = allSchedule[day] && allSchedule[day][h];
+      const playlist = pid && allPlaylists.find(p => p.id == pid);
+      html += `<td onclick="openModal('${day}',${h})">`;
+      if (playlist) html += `<div class="schedule-cell">📋 ${playlist.name}</div>`;
+      else html += `<div class="schedule-empty">+ إضافة</div>`;
+      html += '</td>';
+    });
+    html += '</tr>';
+  }
+  table.innerHTML = html;
+}
+
+function openModal(day, hour) {
+  modalDay = day;
+  modalHour = hour;
+  const dayIdx = DAYS.indexOf(day);
+  document.getElementById('modalTitle').textContent = `${DAYS_AR[dayIdx]} — ${String(hour).padStart(2,'0')}:00`;
+  const sel = document.getElementById('modalPlaylist');
+  sel.innerHTML = '<option value="">— بلا بلايليست —</option>' +
+    allPlaylists.map(p => `<option value="${p.id}" ${allSchedule[day]&&allSchedule[day][hour]==p.id?'selected':''}>${p.name}</option>`).join('');
+  document.getElementById('scheduleModal').style.display = 'flex';
+}
+
+function closeModal() { document.getElementById('scheduleModal').style.display = 'none'; }
+
+async function saveSchedule() {
+  const playlistId = document.getElementById('modalPlaylist').value;
+  if (playlistId) {
+    await fetch('/api/admin/schedule', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({day:modalDay, hour:modalHour, playlistId}) });
+    if (!allSchedule[modalDay]) allSchedule[modalDay] = {};
+    allSchedule[modalDay][modalHour] = playlistId;
+  } else {
+    await fetch('/api/admin/schedule', { method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({day:modalDay, hour:modalHour}) });
+    if (allSchedule[modalDay]) delete allSchedule[modalDay][modalHour];
+  }
+  closeModal();
+  renderSchedule();
+}
+
+// ── UTILS ─────────────────────────────────────────────
+function showMsg(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; setTimeout(() => el.textContent = '', 3000); }
+}
+
+// ── AUTO CHECK AUTH ───────────────────────────────────
+fetch('/api/admin/check').then(r => r.json()).then(d => {
+  if (d.admin) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadAll();
+  }
+});
+</script>
+</body>
+</html>

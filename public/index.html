@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>راديو صاحب القول</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --gold: #FFD700;
+      --gold2: #c9a84c;
+      --gold3: #8b6914;
+      --dark: #0a0500;
+      --leather: #2c1810;
+    }
+
+    body {
+      background: #000;
+      color: white;
+      font-family: 'Amiri', 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ══════════════ FOND CORAN ══════════════ */
+    .quran-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      background: #0a0500;
+      overflow: hidden;
+    }
+
+    /* Pages du Coran */
+    .quran-page {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44%;
+      height: 85vh;
+      background: linear-gradient(135deg, #f5e6c8 0%, #ede0b8 30%, #f0e4c0 60%, #e8d9b0 100%);
+      border-radius: 4px;
+      box-shadow: 0 0 60px rgba(0,0,0,0.8);
+      overflow: hidden;
+    }
+    .quran-page.left {
+      left: 2%;
+      border-radius: 4px 0 0 4px;
+      box-shadow: 5px 0 15px rgba(0,0,0,0.5), -5px 0 30px rgba(0,0,0,0.8);
+      transform: translateY(-50%) perspective(800px) rotateY(8deg);
+    }
+    .quran-page.right {
+      right: 2%;
+      border-radius: 0 4px 4px 0;
+      box-shadow: -5px 0 15px rgba(0,0,0,0.5), 5px 0 30px rgba(0,0,0,0.8);
+      transform: translateY(-50%) perspective(800px) rotateY(-8deg);
+    }
+
+    /* Décoration des pages */
+    .page-border {
+      position: absolute;
+      top: 12px; left: 12px; right: 12px; bottom: 12px;
+      border: 2px solid rgba(139,105,20,0.6);
+      border-radius: 3px;
+    }
+    .page-border::before {
+      content: '';
+      position: absolute;
+      top: 5px; left: 5px; right: 5px; bottom: 5px;
+      border: 1px solid rgba(139,105,20,0.3);
+      border-radius: 2px;
+    }
+
+    /* Lignes de texte arabe simulées */
+    .arabic-lines {
+      position: absolute;
+      top: 50px; left: 25px; right: 25px; bottom: 50px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      justify-content: center;
+    }
+    .arabic-line {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(80,50,10,0.4), rgba(80,50,10,0.6), rgba(80,50,10,0.4), transparent);
+      border-radius: 1px;
+    }
+    .arabic-line.short { width: 60%; margin: 0 auto; }
+    .arabic-line.medium { width: 85%; margin: 0 auto; }
+    .arabic-line.long { width: 95%; margin: 0 auto; }
+    .arabic-line.gold-line {
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(139,105,20,0.7), rgba(200,160,50,0.9), rgba(139,105,20,0.7), transparent);
+    }
+
+    /* Ornement central du haut */
+    .page-ornament {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.5em;
+      color: rgba(139,105,20,0.7);
+    }
+    .page-ornament-bottom {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1em;
+      color: rgba(139,105,20,0.5);
+    }
+
+    /* Spine du livre (reliure) */
+    .book-spine {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 85vh;
+      background: linear-gradient(90deg, #1a0a00, #3d1f00, #5c3000, #3d1f00, #1a0a00);
+      box-shadow: 0 0 30px rgba(0,0,0,0.9);
+      z-index: 1;
+    }
+    .spine-ornament {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--gold2);
+      font-size: 1.2em;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      opacity: 0.6;
+    }
+
+    /* Lumière divine */
+    .divine-light {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(ellipse, rgba(255,215,0,0.15) 0%, rgba(255,180,0,0.08) 30%, transparent 70%);
+      border-radius: 50%;
+      z-index: 2;
+      animation: glow 3s ease-in-out infinite;
+    }
+    @keyframes glow {
+      0%,100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    /* Overlay sombre */
+    .overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.7) 0%,
+        rgba(0,0,0,0.3) 40%,
+        rgba(0,0,0,0.3) 60%,
+        rgba(0,0,0,0.8) 100%
+      );
+      z-index: 3;
+    }
+
+    /* ══════════════ CONTENU ══════════════ */
+    .content {
+      position: relative;
+      z-index: 10;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* HEADER */
+    header {
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(180deg, rgba(0,0,0,0.9), transparent);
+    }
+    .logo-text {
+      font-size: 1.4em;
+      color: var(--gold);
+      font-family: 'Amiri', serif;
+    }
+    .live-badge {
+      background: rgba(139,0,0,0.8);
+      border: 1px solid #8b0000;
+      color: #ff6666;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.82em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .live-dot { width:8px;height:8px;background:#ff4444;border-radius:50%;animation:blink 1s infinite; }
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+    /* HERO CENTER */
+    .hero-center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+    }
+    .bismillah {
+      font-family: 'Amiri', serif;
+      font-size: 1.6em;
+      color: var(--gold);
+      margin-bottom: 5px;
+      text-shadow: 0 0 20px rgba(255,215,0,0.5);
+    }
+    .radio-title {
+      font-family: 'Amiri', serif;
+      font-size: 3.5em;
+      font-weight: 700;
+      color: var(--gold);
+      text-shadow: 0 0 40px rgba(255,215,0,0.6), 0 2px 4px rgba(0,0,0,0.8);
+      margin-bottom: 5px;
+      line-height: 1.2;
+    }
+    .slogan {
+      color: rgba(255,215,0,0.5);
+      font-size: 0.95em;
+      margin-bottom: 30px;
+      letter-spacing: 2px;
+    }
+
+    /* VISUALIZER */
+    .visualizer {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 4px;
+      height: 45px;
+      margin-bottom: 20px;
+    }
+    .bar {
+      width: 5px;
+      background: linear-gradient(to top, var(--gold3), var(--gold));
+      border-radius: 3px;
+      animation: eq 0.8s ease-in-out infinite;
+    }
+    .bar:nth-child(1){height:25%;animation-delay:0s}
+    .bar:nth-child(2){height:55%;animation-delay:0.1s}
+    .bar:nth-child(3){height:85%;animation-delay:0.2s}
+    .bar:nth-child(4){height:45%;animation-delay:0.3s}
+    .bar:nth-child(5){height:100%;animation-delay:0.4s}
+    .bar:nth-child(6){height:35%;animation-delay:0.5s}
+    .bar:nth-child(7){height:70%;animation-delay:0.6s}
+    .bar:nth-child(8){height:30%;animation-delay:0.7s}
+    .bar:nth-child(9){height:60%;animation-delay:0.8s}
+    .bar:nth-child(10){height:20%;animation-delay:0.9s}
+    @keyframes eq{0%,100%{transform:scaleY(1)}50%{transform:scaleY(0.15)}}
+    .paused .bar{animation-play-state:paused}
+
+    /* PLAYER CARD */
+    .player-card {
+      background: rgba(0,0,0,0.85);
+      border: 1px solid rgba(255,215,0,0.35);
+      border-radius: 20px;
+      padding: 30px 35px;
+      width: 100%;
+      max-width: 380px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 50px rgba(255,215,0,0.1), 0 20px 60px rgba(0,0,0,0.7);
+    }
+    .emission-label { color: var(--gold2); font-size: 0.82em; margin-bottom: 8px; }
+    .emission-title {
+      color: white;
+      font-family: 'Amiri', serif;
+      font-size: 1.15em;
+      margin-bottom: 22px;
+      min-height: 28px;
+    }
+    .play-btn {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold2), var(--gold));
+      border: none;
+      cursor: pointer;
+      font-size: 1.7em;
+      color: #000;
+      display: block;
+      margin: 0 auto 20px;
+      transition: all 0.25s;
+      box-shadow: 0 0 25px rgba(255,215,0,0.4);
+    }
+    .play-btn:hover { transform:scale(1.1); box-shadow:0 0 40px rgba(255,215,0,0.7); }
+    .volume-row { display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.35);font-size:0.9em; }
+    .volume-row input { flex:1;accent-color:var(--gold);cursor:pointer; }
+
+    /* BOTTOM SECTION */
+    .bottom-section {
+      background: linear-gradient(0deg, rgba(0,0,0,0.95), transparent);
+      padding: 30px 20px;
+    }
+    .bottom-grid {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .section-card {
+      background: rgba(0,0,0,0.8);
+      border: 1px solid rgba(255,215,0,0.12);
+      border-radius: 14px;
+      padding: 20px;
+      backdrop-filter: blur(5px);
+    }
+    .section-title {
+      color: var(--gold);
+      font-size: 1em;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255,215,0,0.15);
+      font-family: 'Amiri', serif;
+    }
+
+    /* CHAT */
+    .chat-messages {
+      height: 160px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--gold3) transparent;
+    }
+    .chat-msg {
+      background: rgba(255,255,255,0.04);
+      border-right: 2px solid var(--gold3);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 0.85em;
+    }
+    .chat-msg .author { color: var(--gold2); font-size: 0.78em; margin-bottom: 2px; }
+    .chat-input-row { display:flex;gap:8px; }
+    .chat-input {
+      flex:1;background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,215,0,0.2);
+      border-radius:7px;padding:8px;color:white;font-size:0.85em;outline:none;
+    }
+    .chat-input:focus { border-color:var(--gold); }
+    .chat-send {
+      background:var(--gold2);border:none;border-radius:7px;
+      padding:8px 14px;color:#000;cursor:pointer;font-weight:bold;font-size:0.85em;
+    }
+
+    /* SOCIAL */
+    .social-card { grid-column: span 2; text-align:center; }
+    .social-row { display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:5px; }
+    .social-btn {
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,215,0,0.2);
+      border-radius:10px;padding:10px 18px;
+      color:var(--gold);font-size:1.2em;cursor:pointer;
+      transition:all 0.2s;text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:3px;
+    }
+    .social-btn:hover { background:rgba(255,215,0,0.1);border-color:var(--gold);transform:translateY(-3px); }
+    .social-label { font-size:0.55em;color:rgba(255,255,255,0.4); }
+
+    footer {
+      text-align:center;padding:20px;
+      color:rgba(255,255,255,0.2);font-size:0.78em;
+      background:rgba(0,0,0,0.9);
+      border-top:1px solid rgba(255,215,0,0.08);
+    }
+
+    @media(max-width:700px){
+      .bottom-grid{grid-template-columns:1fr;}
+      .social-card{grid-column:span 1;}
+      .radio-title{font-size:2.3em;}
+      .quran-page{width:47%;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- FOND CORAN -->
+<div class="quran-bg">
+  <!-- Page gauche -->
+  <div class="quran-page left">
+    <div class="page-border"></div>
+    <div class="page-ornament">❧</div>
+    <div class="arabic-lines">
+      <div class="arabic-line gold-line long"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line medium"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line short"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line medium"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line short"></div>
+      <div class="arabic-line gold-line medium"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line medium"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line short"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line medium"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line gold-line long"></div>
+    </div>
+    <div class="page-ornament-bottom">✦ ٢٤ ✦</div>
+  </div>
+
+  <!-- Reliure -->
+  <div class="book-spine">
+    <div class="spine-ornament">☪</div>
+  </div>
+
+  <!-- Page droite -->
+  <div class="quran-page right">
+    <div class="page-border"></div>
+    <div class="page-ornament">❧</div>
+    <div class="arabic-lines">
+      <div class="arabic-line gold-line long"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line medium"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line short"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line medium"></div>
+      <div class="arabic-line gold-line short"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line medium"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line short"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line medium"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line long"></div>
+      <div class="arabic-line short"></div>
+      <div class="arabic-line gold-line long"></div>
+    </div>
+    <div class="page-ornament-bottom">✦ ٢٥ ✦</div>
+  </div>
+
+  <!-- Lumière divine -->
+  <div class="divine-light"></div>
+  <!-- Overlay -->
+  <div class="overlay"></div>
+</div>
+
+<!-- CONTENU -->
+<div class="content">
+  <header>
+    <div class="logo-text">📻 راديو صاحب القول</div>
+    <div class="live-badge"><div class="live-dot"></div> بث مباشر</div>
+  </header>
+
+  <div class="hero-center">
+    <div class="bismillah">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>
+    <div class="radio-title">راديو صاحب القول</div>
+    <div class="slogan">نقول و نوفي — الكلمة أمانة</div>
+
+    <div class="visualizer paused" id="visualizer">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div>
+    </div>
+
+    <div class="player-card">
+      <div class="emission-label">🎙️ يُبث الآن</div>
+      <div class="emission-title" id="emissionTitle">جاري التحميل...</div>
+      <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+      <div class="volume-row">
+        🔈
+        <input type="range" min="0" max="1" step="0.05" value="0.8" onchange="setVolume(this.value)">
+        🔊
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-section">
+    <div class="bottom-grid">
+
+      <div class="section-card">
+        <div class="section-title">💬 تواصل مع المستمعين</div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-msg">
+            <div class="author">📻 صاحب القول</div>
+            <div>بسم الله، أهلاً وسهلاً بكم 🌙</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-input" id="chatInput" placeholder="اكتب رسالتك..." onkeypress="sendOnEnter(event)">
+          <button class="chat-send" onclick="sendMessage()">إرسال</button>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-title">🌙 عن الراديو</div>
+        <p style="color:rgba(255,255,255,0.6);line-height:2;font-size:0.9em;font-family:'Amiri',serif;">
+          راديو صاحب القول — إذاعة إسلامية متخصصة في تلاوة القرآن الكريم، الأحاديث النبوية الشريفة، الأناشيد الإسلامية والدروس الدينية.
+        </p>
+        <div style="margin-top:15px;color:var(--gold2);font-size:0.85em;font-family:'Amiri',serif;">
+          ❝ نقول و نوفي — الكلمة أمانة ❞
+        </div>
+      </div>
+
+      <div class="section-card social-card">
+        <div class="section-title" style="text-align:center">📱 تابعونا</div>
+        <div class="social-row">
+          <a class="social-btn" href="#"><span>📘</span><span class="social-label">Facebook</span></a>
+          <a class="social-btn" href="#"><span>📸</span><span class="social-label">Instagram</span></a>
+          <a class="social-btn" href="#"><span>▶️</span><span class="social-label">YouTube</span></a>
+          <a class="social-btn" href="#"><span>🎵</span><span class="social-label">TikTok</span></a>
+          <a class="social-btn" href="#"><span>💬</span><span class="social-label">WhatsApp</span></a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>© 2026 راديو صاحب القول — نقول و نوفي</footer>
+</div>
+
+<script>
+  let audio = new Audio();
+  let playing = false;
+
+  async function loadEmission() {
+    try {
+      const res = await fetch('/api/emission');
+      const data = await res.json();
+      document.getElementById('emissionTitle').textContent = data.title || 'راديو صاحب القول';
+    } catch(e) {
+      document.getElementById('emissionTitle').textContent = 'راديو صاحب القول';
+    }
+  }
+  loadEmission();
+  setInterval(loadEmission, 30000);
+
+  function togglePlay() {
+    if (!playing) {
+      audio.src = '/stream';
+      audio.play().catch(() => {
+        document.getElementById('emissionTitle').textContent = '⚠️ البث غير متاح حالياً';
+      });
+      document.getElementById('playBtn').textContent = '⏸';
+      document.getElementById('visualizer').classList.remove('paused');
+      playing = true;
+    } else {
+      audio.pause();
+      document.getElementById('playBtn').textContent = '▶';
+      document.getElementById('visualizer').classList.add('paused');
+      playing = false;
+    }
+  }
+
+  function setVolume(v) { audio.volume = v; }
+
+  function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+    const div = document.createElement('div');
+    div.className = 'chat-msg';
+    div.innerHTML = `<div class="author">أنت</div><div>${msg}</div>`;
+    const chat = document.getElementById('chatMessages');
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+    input.value = '';
+  }
+
+  function sendOnEnter(e) { if(e.key==='Enter') sendMessage(); }
+</script>
+</body>
+</html>
