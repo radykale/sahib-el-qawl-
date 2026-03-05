@@ -233,3 +233,40 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`🎙️  Admin: http://localhost:${PORT}/admin`);
   console.log(`🎙️ ================================\n`);
 });
+
+// ── STREAMING ─────────────────────────────────────────
+const radioStream = require('./stream');
+
+// Démarrer le stream automatiquement
+function startStream() {
+  const data = loadData();
+  const tracks = data.tracks.filter(t => !t.isJingle);
+  const jingles = data.tracks.filter(t => t.isJingle);
+  if (tracks.length) {
+    radioStream.start(tracks, jingles);
+  } else {
+    console.log('⚠️ Aucune piste — en attente de fichiers audio');
+    setTimeout(startStream, 30000);
+  }
+}
+startStream();
+
+// Route stream
+app.get('/stream', (req, res) => {
+  radioStream.addClient(res);
+});
+
+// Status stream
+app.get('/api/stream/status', (req, res) => {
+  res.json(radioStream.getStatus());
+});
+
+// Admin: mettre à jour le stream
+app.post('/api/admin/stream/update', requireAuth, (req, res) => {
+  const data = loadData();
+  radioStream.updatePlaylist(
+    data.tracks.filter(t => !t.isJingle),
+    data.tracks.filter(t => t.isJingle)
+  );
+  res.json({ success: true });
+});
