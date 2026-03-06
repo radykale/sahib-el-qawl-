@@ -142,6 +142,7 @@ try {
 } catch(err) {
   console.error('❌ Cloudinary error:', err.message);
   return res.status(500).json({ error: err.message });
+}const audioUrl = await uploadToCloudinary(req.file.buffer, req.file.filename);
   const track = {
     id: Date.now(),
     filename: req.file.filename,
