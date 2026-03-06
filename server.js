@@ -2,27 +2,21 @@ const express = require('express');
 const session = require('express-session');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
-const cron = require('node-cron');
 const cloudinary = require('cloudinary').v2;
+const { connectDB, Track, Playlist, Emission, Schedule } = require('./db');
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
+const https = require('https');
+const { EventEmitter } = require('events');
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-const DATA_FILE = path.join(__dirname, 'data.json');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
-
-function loadData() {
-  try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
-  catch { return { emission: { title: 'راديو صاحب القول', category: '' }, tracks: [], playlists: [], schedule: {} }; }
-}
-function saveData(data) { fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2)); }
 
 async function uploadToCloudinary(buffer, filename) {
   return new Promise((resolve, reject) => {
@@ -50,9 +44,6 @@ function requireAuth(req, res, next) {
 }
 
 // ── Stream ────────────────────────────────────────────
-const { EventEmitter } = require('events');
-const https = require('https');
-
 class RadioStream extends EventEmitter {
   constructor() {
     super();
@@ -117,11 +108,11 @@ class RadioStream extends EventEmitter {
     });
   }
 
-  start(tracks, jingles) {
+  start(tracks) {
     if (this.playing) return;
     this.playing = true;
     this.playlist = tracks.filter(t => !t.isJingle);
-    this.jingles = jingles || tracks.filter(t => t.isJingle);
+    this.jingles = tracks.filter(t => t.isJingle);
     this.playNext();
     console.log('🎙️ Streaming démarré!');
   }
@@ -139,23 +130,42 @@ class RadioStream extends EventEmitter {
 
 const radioStream = new RadioStream();
 
-function startStream() {
-  const data = loadData();
-  const tracks = data.tracks.filter(t => t.url);
+async function startStream() {
+  const tracks = await Track.find({ url: { $exists: true } });
   if (tracks.length) {
-    radioStream.start(tracks, tracks.filter(t => t.isJingle));
+    radioStream.start(tracks);
   } else {
     console.log('⚠️ Aucune piste — en attente de fichiers audio');
     setTimeout(startStream, 30000);
   }
 }
-startStream();
 
 // ── API ───────────────────────────────────────────────
-app.get('/api/emission', (req, res) => res.json(loadData().emission));
-app.get('/api/tracks', (req, res) => res.json(loadData().tracks));
-app.get('/api/playlists', (req, res) => res.json(loadData().playlists));
-app.get('/api/schedule', (req, res) => res.json(loadData().schedule));
+app.get('/api/emission', async (req, res) => {
+  const emission = await Emission.findOne() || { title: 'راديو صاحب القول', category: '' };
+  res.json(emission);
+});
+
+app.get('/api/tracks', async (req, res) => {
+  const tracks = await Track.find();
+  res.json(tracks);
+});
+
+app.get('/api/playlists', async (req, res) => {
+  const playlists = await Playlist.find();
+  res.json(playlists);
+});
+
+app.get('/api/schedule', async (req, res) => {
+  const schedules = await Schedule.find();
+  const result = {};
+  schedules.forEach(s => {
+    if (!result[s.day]) result[s.day] = {};
+    result[s.day][s.hour] = s.playlistId;
+  });
+  res.json(result);
+});
+
 app.get('/api/stream/status', (req, res) => res.json(radioStream.getStatus()));
 app.get('/stream', (req, res) => radioStream.addClient(res));
 
@@ -166,10 +176,8 @@ app.post('/api/admin/login', (req, res) => {
 app.post('/api/admin/logout', (req, res) => { req.session.destroy(); res.json({ success: true }); });
 app.get('/api/admin/check', (req, res) => res.json({ admin: !!req.session.admin }));
 
-app.post('/api/admin/emission', requireAuth, (req, res) => {
-  const data = loadData();
-  data.emission = { ...data.emission, ...req.body, updatedAt: new Date().toISOString() };
-  saveData(data);
+app.post('/api/admin/emission', requireAuth, async (req, res) => {
+  await Emission.findOneAndUpdate({}, { ...req.body, updatedAt: new Date().toISOString() }, { upsert: true });
   res.json({ success: true });
 });
 
@@ -177,9 +185,8 @@ app.post('/api/admin/upload', requireAuth, upload.single('audio'), async (req, r
   if (!req.file) return res.status(400).json({ error: 'Fichier invalide' });
   try {
     const safeName = req.file.originalname.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
-const url = await uploadToCloudinary(req.file.buffer, Date.now() + '-' + safeName);
-    const data = loadData();
-    const track = {
+    const url = await uploadToCloudinary(req.file.buffer, Date.now() + '-' + safeName);
+    const track = await Track.create({
       id: Date.now(),
       filename: req.file.originalname,
       url,
@@ -189,73 +196,68 @@ const url = await uploadToCloudinary(req.file.buffer, Date.now() + '-' + safeNam
       isJingle: req.body.isJingle === 'true',
       size: req.file.size,
       uploadedAt: new Date().toISOString()
-    };
-    data.tracks.push(track);
-    saveData(data);
-    radioStream.updatePlaylist(data.tracks);
+    });
+    const allTracks = await Track.find();
+    radioStream.updatePlaylist(allTracks);
     if (!radioStream.playing) startStream();
     res.json({ success: true, track });
   } catch(err) {
-    console.error('❌ Cloudinary error:', err.message);
+    console.error('❌ Erreur upload:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete('/api/admin/track/:id', requireAuth, (req, res) => {
-  const data = loadData();
-  data.tracks = data.tracks.filter(t => t.id != req.params.id);
-  saveData(data);
-  radioStream.updatePlaylist(data.tracks);
+app.delete('/api/admin/track/:id', requireAuth, async (req, res) => {
+  await Track.deleteOne({ id: req.params.id });
+  const tracks = await Track.find();
+  radioStream.updatePlaylist(tracks);
   res.json({ success: true });
 });
 
-app.post('/api/admin/playlist', requireAuth, (req, res) => {
-  const data = loadData();
-  const playlist = { id: Date.now(), name: req.body.name, category: req.body.category || '', trackIds: req.body.trackIds || [], createdAt: new Date().toISOString() };
-  data.playlists.push(playlist);
-  saveData(data);
+app.post('/api/admin/playlist', requireAuth, async (req, res) => {
+  const playlist = await Playlist.create({
+    id: Date.now(),
+    name: req.body.name,
+    category: req.body.category || '',
+    trackIds: req.body.trackIds || [],
+    createdAt: new Date().toISOString()
+  });
   res.json({ success: true, playlist });
 });
 
-app.put('/api/admin/playlist/:id', requireAuth, (req, res) => {
-  const data = loadData();
-  const idx = data.playlists.findIndex(p => p.id == req.params.id);
-  if (idx !== -1) data.playlists[idx] = { ...data.playlists[idx], ...req.body };
-  saveData(data);
+app.put('/api/admin/playlist/:id', requireAuth, async (req, res) => {
+  await Playlist.findOneAndUpdate({ id: req.params.id }, req.body);
   res.json({ success: true });
 });
 
-app.delete('/api/admin/playlist/:id', requireAuth, (req, res) => {
-  const data = loadData();
-  data.playlists = data.playlists.filter(p => p.id != req.params.id);
-  saveData(data);
+app.delete('/api/admin/playlist/:id', requireAuth, async (req, res) => {
+  await Playlist.deleteOne({ id: req.params.id });
   res.json({ success: true });
 });
 
-app.post('/api/admin/schedule', requireAuth, (req, res) => {
+app.post('/api/admin/schedule', requireAuth, async (req, res) => {
   const { day, hour, playlistId } = req.body;
-  const data = loadData();
-  if (!data.schedule[day]) data.schedule[day] = {};
-  data.schedule[day][hour] = playlistId;
-  saveData(data);
+  await Schedule.findOneAndUpdate({ day, hour }, { day, hour, playlistId }, { upsert: true });
   res.json({ success: true });
 });
 
-app.delete('/api/admin/schedule', requireAuth, (req, res) => {
+app.delete('/api/admin/schedule', requireAuth, async (req, res) => {
   const { day, hour } = req.body;
-  const data = loadData();
-  if (data.schedule[day]) delete data.schedule[day][hour];
-  saveData(data);
+  await Schedule.deleteOne({ day, hour });
   res.json({ success: true });
 });
 
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin/index.html')));
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🎙️ ================================`);
-  console.log(`🎙️  راديو صاحب القول`);
-  console.log(`🎙️  http://localhost:${PORT}`);
-  console.log(`🎙️  Admin: http://localhost:${PORT}/admin`);
-  console.log(`🎙️ ================================\n`);
+
+connectDB().then(() => {
+  startStream();
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🎙️ ================================`);
+    console.log(`🎙️  راديو صاحب القول`);
+    console.log(`🎙️  http://localhost:${PORT}`);
+    console.log(`🎙️  Admin: http://localhost:${PORT}/admin`);
+    console.log(`🎙️ ================================\n`);
+  });
 });
