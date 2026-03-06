@@ -497,7 +497,7 @@ async function createPlaylist() {
   const editId = document.getElementById('editingPlaylistId').value;
   let res;
   if (editId) {
-    res = await fetch('/api/admin/playlist/'+editId, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, category, trackIds: checked}) });
+    res = await fetch('/api/admin/playlist/'+(editId), { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, category, trackIds: checked}) });
     showMsg('playlistMsg','✅ تم تحديث البلايليست!');
   } else {
     res = await fetch('/api/admin/playlist', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, category, trackIds: checked}) });
@@ -549,7 +549,7 @@ function editPlaylist(id) {
       if (cb) cb.checked = true;
     });
   }, 100);
-  document.getElementById('editingPlaylistId').value = id;
+  document.getElementById('editingPlaylistId').value = p._id || id;
   document.getElementById('createPlaylistBtn').textContent = '💾 تحديث البلايليست';
   window.scrollTo(0, document.getElementById('tab-playlists').offsetTop);
 }

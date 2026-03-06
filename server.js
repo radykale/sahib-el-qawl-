@@ -243,12 +243,12 @@ app.post('/api/admin/playlist', requireAuth, async (req, res) => {
 });
 
 app.put('/api/admin/playlist/:id', requireAuth, async (req, res) => {
-  await Playlist.findOneAndUpdate({ id: req.params.id }, req.body);
+  await Playlist.findOneAndUpdate({ $or: [{id: parseInt(req.params.id)}, {_id: req.params.id}] }, req.body);
   res.json({ success: true });
 });
 
 app.delete('/api/admin/playlist/:id', requireAuth, async (req, res) => {
-  await Playlist.deleteOne({ id: req.params.id });
+  await Playlist.deleteOne({ $or: [{id: parseInt(req.params.id)}, {_id: req.params.id}] });
   res.json({ success: true });
 });
 
