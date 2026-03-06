@@ -142,7 +142,13 @@ app.post('/api/admin/upload', requireAuth,upload.single('audio'), async (req, re
   if (!req.file) return res.status(400).json({ error: 'Fichier invalide' });
   const data = loadData();
   const { uploadToCloudinary } = require("./upload-handler");
-  const audioUrl = await uploadToCloudinary(req.file.buffer, req.file.filename);
+  let audioUrl;
+try {
+  audioUrl = await uploadToCloudinary(req.file.buffer, req.file.filename);
+} catch(err) {
+  console.error('❌ Cloudinary error:', err.message);
+  return res.status(500).json({ error: err.message });
+}const audioUrl = await uploadToCloudinary(req.file.buffer, req.file.filename);
   const track = {
     id: Date.now(),
     filename: req.file.filename,
