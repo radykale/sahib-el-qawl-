@@ -517,7 +517,7 @@ function renderPlaylists() {
   const list = document.getElementById('playlistsList');
   if (!allPlaylists.length) { list.innerHTML = '<div class="empty-msg">لا توجد بلايليست بعد</div>'; return; }
   list.innerHTML = allPlaylists.map(p => {
-    const tracks = allTracks.filter(t => p.trackIds.includes(t.id));
+    const tracks = allTracks.filter(t => p.trackIds.includes(t.id) || p.trackIds.map(String).includes(String(t.id)));
     return `
       <div class="playlist-item">
         <div class="playlist-header">
