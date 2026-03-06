@@ -28,7 +28,7 @@ function saveData(data) {
 }
 
 // ── Multer ───────────────────────────────────────────
-const storage = multer.diskStorage({
+const storage = multer.memoryStorage();const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
     const name = Date.now() + '-' + file.originalname.replace(/\s/g, '_');
@@ -142,7 +142,7 @@ app.post('/api/admin/upload', requireAuth,upload.single('audio'), async (req, re
   if (!req.file) return res.status(400).json({ error: 'Fichier invalide' });
   const data = loadData();
   const { uploadToCloudinary } = require("./upload-handler");
-  const audioUrl = await uploadToCloudinary(req.file.path, req.file.filename);
+  const audioUrl = await uploadToCloudinary(req.file.buffer, req.file.filename);
   const track = {
     id: Date.now(),
     filename: req.file.filename,

@@ -1,21 +1,21 @@
 const cloudinary = require('./cloudinary-config');
-const fs = require('fs');
 
-async function uploadToCloudinary(filePath, fileName) {
-  try {
-    const result = await cloudinary.uploader.upload(filePath, {
-      resource_type: 'video', // Cloudinary utilise 'video' pour l'audio
-      public_id: fileName,
-      folder: 'sahib-el-qawl',
-      overwrite: true
-    });
-    // Supprimer le fichier local après upload
-    fs.unlinkSync(filePath);
-    return result.secure_url;
-  } catch (err) {
-    console.error('❌ Erreur Cloudinary:', err.message);
-    throw err;
-  }
+async function uploadToCloudinary(buffer, filename) {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: 'video',
+        public_id: filename,
+        folder: 'sahib-el-qawl',
+        overwrite: true
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result.secure_url);
+      }
+    );
+    uploadStream.end(buffer);
+  });
 }
 
 module.exports = { uploadToCloudinary };
