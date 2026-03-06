@@ -263,11 +263,20 @@
       </div>
       <div class="form-group" style="margin-bottom:15px;">
         <label class="form-label">اختر الملفات الصوتية</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn-outline" onclick="filterPlaylistTracks('all')">الكل</button>
+          <button class="btn-outline" onclick="filterPlaylistTracks('قرآن كريم')">📖 قرآن</button>
+          <button class="btn-outline" onclick="filterPlaylistTracks('أحاديث نبوية')">📜 أحاديث</button>
+          <button class="btn-outline" onclick="filterPlaylistTracks('أناشيد إسلامية')">🎵 أناشيد</button>
+          <button class="btn-outline" onclick="filterPlaylistTracks('دروس دينية')">🎓 دروس</button>
+          <button class="btn-outline" onclick="filterPlaylistTracks('أذكار ودعاء')">🤲 أذكار</button>
+        </div>
         <div class="tracks-selector" id="tracksSelector">
           <div class="empty-msg">ارفع ملفات أولاً من تبويب "رفع ملفات"</div>
         </div>
       </div>
-      <button class="btn-gold" onclick="createPlaylist()">✅ إنشاء البلايليست</button>
+      <input type="hidden" id="editingPlaylistId" value="">
+      <button class="btn-gold" id="createPlaylistBtn" onclick="createPlaylist()">✅ إنشاء البلايليست</button>
       <div class="success-msg" id="playlistMsg"></div>
     </div>
 
@@ -463,11 +472,21 @@ function renderTracksSelector() {
   const sel = document.getElementById('tracksSelector');
   if (!allTracks.length) { sel.innerHTML = '<div class="empty-msg">ارفع ملفات أولاً</div>'; return; }
   sel.innerHTML = allTracks.map(t => `
-    <label class="track-checkbox">
+    <label class="track-checkbox playlist-track-item" data-category="${t.category}">
       <input type="checkbox" value="${t.id}" class="playlist-track-check">
       ${t.isJingle?'🎺':'🎵'} ${t.title} <span style="color:rgba(255,255,255,0.3);font-size:0.8em">${t.category}</span>
     </label>
   `).join('');
+}
+
+function filterPlaylistTracks(cat) {
+  document.querySelectorAll('.playlist-track-item').forEach(item => {
+    if (cat === 'all' || item.dataset.category === cat) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
+  });
 }
 
 async function createPlaylist() {
@@ -475,10 +494,19 @@ async function createPlaylist() {
   if (!name) { alert('أدخل اسم البلايليست'); return; }
   const checked = [...document.querySelectorAll('.playlist-track-check:checked')].map(c => parseInt(c.value));
   const category = document.getElementById('playlistCategory').value;
-  const res = await fetch('/api/admin/playlist', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, category, trackIds: checked}) });
-  if (res.ok) {
+  const editId = document.getElementById('editingPlaylistId').value;
+  let res;
+  if (editId) {
+    res = await fetch('/api/admin/playlist/'+editId, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, category, trackIds: checked}) });
+    showMsg('playlistMsg','✅ تم تحديث البلايليست!');
+  } else {
+    res = await fetch('/api/admin/playlist', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, category, trackIds: checked}) });
     showMsg('playlistMsg','✅ تم إنشاء البلايليست!');
+  }
+  if (res.ok) {
     document.getElementById('playlistName').value = '';
+    document.getElementById('editingPlaylistId').value = '';
+    document.getElementById('createPlaylistBtn').textContent = '✅ إنشاء البلايليست';
     document.querySelectorAll('.playlist-track-check').forEach(c => c.checked = false);
     await loadPlaylists();
     renderStats();
@@ -494,16 +522,45 @@ function renderPlaylists() {
       <div class="playlist-item">
         <div class="playlist-header">
           <div class="playlist-name">📋 ${p.name} <span style="color:rgba(255,255,255,0.3);font-size:0.8em">(${tracks.length} ملف)</span></div>
-          <button class="btn-red" onclick="deletePlaylist(${p.id})">🗑️ حذف</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn-outline" onclick="editPlaylist(${p.id})">✏️ تعديل</button>
+            <button class="btn-red" onclick="deletePlaylist(${p.id})">🗑️ حذف</button>
+          </div>
         </div>
         <div class="playlist-tracks">
-          ${tracks.map(t => `<span class="playlist-track-badge">${t.isJingle?'🎺':'🎵'} ${t.title}</span>`).join('')}
+          ${tracks.map(t => `<span class="playlist-track-badge" onclick="removeFromPlaylist(${p.id},${t.id})">✖ ${t.isJingle?'🎺':'🎵'} ${t.title}</span>`).join('')}
           ${!tracks.length ? '<span style="color:rgba(255,255,255,0.3);font-size:0.8em">لا توجد ملفات</span>' : ''}
         </div>
         <span class="badge">${p.category}</span>
       </div>
     `;
   }).join('');
+}
+
+function editPlaylist(id) {
+  const p = allPlaylists.find(x => x.id == id);
+  if (!p) return;
+  document.getElementById('playlistName').value = p.name;
+  document.getElementById('playlistCategory').value = p.category;
+  filterPlaylistTracks(p.category);
+  setTimeout(() => {
+    p.trackIds.forEach(tid => {
+      const cb = document.querySelector(`.playlist-track-check[value="${tid}"]`);
+      if (cb) cb.checked = true;
+    });
+  }, 100);
+  document.getElementById('editingPlaylistId').value = id;
+  document.getElementById('createPlaylistBtn').textContent = '💾 تحديث البلايليست';
+  window.scrollTo(0, document.getElementById('tab-playlists').offsetTop);
+}
+
+async function removeFromPlaylist(playlistId, trackId) {
+  const p = allPlaylists.find(x => x.id == playlistId);
+  if (!p) return;
+  const newIds = p.trackIds.filter(id => id != trackId);
+  await fetch('/api/admin/playlist/'+playlistId, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({trackIds: newIds})});
+  await loadPlaylists();
+  renderPlaylists();
 }
 
 async function deletePlaylist(id) {
