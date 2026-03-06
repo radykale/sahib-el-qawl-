@@ -102,7 +102,7 @@ class RadioStream extends EventEmitter {
       const protocol = track.url.startsWith('https') ? https : require('http');
       protocol.get(track.url, (response) => {
         const BITRATE = 128 * 1024 / 8; // 128kbps en bytes/sec
-        const CHUNK_SIZE = 4096;
+        const CHUNK_SIZE = 16384;
         const INTERVAL = (CHUNK_SIZE / BITRATE) * 1000; // ms entre chunks
         let buffer = Buffer.alloc(0);
         response.on('data', chunk => {
