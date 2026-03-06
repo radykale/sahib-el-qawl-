@@ -176,7 +176,8 @@ app.post('/api/admin/emission', requireAuth, (req, res) => {
 app.post('/api/admin/upload', requireAuth, upload.single('audio'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Fichier invalide' });
   try {
-    const url = await uploadToCloudinary(req.file.buffer, Date.now() + '-' + req.file.originalname);
+    const url = await const safeName = req.file.originalname.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
+const url = await uploadToCloudinary(req.file.buffer, Date.now() + '-' + safeName);uploadToCloudinary(req.file.buffer, Date.now() + '-' + req.file.originalname);
     const data = loadData();
     const track = {
       id: Date.now(),
