@@ -30,123 +30,127 @@
       top: 0; left: 0;
       width: 100%; height: 100%;
       z-index: 0;
-      opacity: 0.7;
       background: #0a0500;
       overflow: hidden;
     }
 
-    /* Logo Livre */
-    .book-bg {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 0;
-      opacity: 0.7;
-      pointer-events: none;
-      perspective: 1200px;
-    }
-    .book-open {
-      position: relative;
-      width: 95vw;
-      height: 70vh;
-      transform-style: preserve-3d;
-      animation: bookFloat 6s ease-in-out infinite;
-    }
-    .book-left, .book-right {
+    /* Pages du Coran */
+    .quran-page {
       position: absolute;
-      top: 0;
-      width: 50%;
-      height: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44%;
+      height: 85vh;
+      background: linear-gradient(135deg, #f5e6c8 0%, #ede0b8 30%, #f0e4c0 60%, #e8d9b0 100%);
       border-radius: 4px;
+      box-shadow: 0 0 60px rgba(0,0,0,0.8);
       overflow: hidden;
     }
-    .book-left {
-      left: 0;
-      background: linear-gradient(135deg, #f9f0d8 0%, #f0e0b0 30%, #e8d090 60%, #f5e8c0 100%);
-      border-radius: 8px 0 0 8px;
-      transform-origin: right center;
-      transform: perspective(1200px) rotateY(25deg);
-      box-shadow: -8px 0 30px rgba(0,0,0,0.6), inset -10px 0 30px rgba(0,0,0,0.2);
-      border-left: 3px solid rgba(200,160,50,0.5);
-      border-top: 2px solid rgba(220,180,60,0.4);
-      border-bottom: 2px solid rgba(220,180,60,0.4);
+    .quran-page.left {
+      left: 2%;
+      border-radius: 4px 0 0 4px;
+      box-shadow: 5px 0 15px rgba(0,0,0,0.5), -5px 0 30px rgba(0,0,0,0.8);
+      transform: translateY(-50%) perspective(800px) rotateY(8deg);
     }
-    .book-right {
-      right: 0;
-      background: linear-gradient(225deg, #f9f0d8 0%, #f0e0b0 30%, #e8d090 60%, #f5e8c0 100%);
-      border-radius: 0 8px 8px 0;
-      transform-origin: left center;
-      transform: perspective(1200px) rotateY(-25deg);
-      box-shadow: 8px 0 30px rgba(0,0,0,0.6), inset 10px 0 30px rgba(0,0,0,0.2);
-      border-right: 3px solid rgba(200,160,50,0.5);
-      border-top: 2px solid rgba(220,180,60,0.4);
-      border-bottom: 2px solid rgba(220,180,60,0.4);
+    .quran-page.right {
+      right: 2%;
+      border-radius: 0 4px 4px 0;
+      box-shadow: -5px 0 15px rgba(0,0,0,0.5), 5px 0 30px rgba(0,0,0,0.8);
+      transform: translateY(-50%) perspective(800px) rotateY(-8deg);
     }
-    .book-spine-new {
+
+    /* Décoration des pages */
+    .page-border {
       position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 30px;
-      height: 100%;
-      background: linear-gradient(90deg, #2a1500, #8b5e00, #c9960a, #8b5e00, #2a1500);
-      box-shadow: 0 0 30px rgba(255,200,0,0.5), 0 0 60px rgba(255,150,0,0.2);
-      z-index: 2;
+      top: 12px; left: 12px; right: 12px; bottom: 12px;
+      border: 2px solid rgba(139,105,20,0.6);
+      border-radius: 3px;
     }
-    .page-lines {
-      position: absolute;
-      top: 40px; left: 30px; right: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .page-line {
-      height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(180,140,40,0.4), rgba(180,140,40,0.6), rgba(180,140,40,0.4), transparent);
-      border-radius: 2px;
-    }
-    .page-border-new {
-      position: absolute;
-      top: 15px; left: 15px; right: 15px; bottom: 15px;
-      border: 2px solid rgba(200,160,40,0.4);
-      border-radius: 4px;
-    }
-    .page-border-new::before {
-      content: "";
+    .page-border::before {
+      content: '';
       position: absolute;
       top: 5px; left: 5px; right: 5px; bottom: 5px;
-      border: 1px solid rgba(200,160,40,0.25);
+      border: 1px solid rgba(139,105,20,0.3);
       border-radius: 2px;
     }
-    .page-ornament-new {
+
+    /* Lignes de texte arabe simulées */
+    .arabic-lines {
       position: absolute;
-      top: 25px;
+      top: 50px; left: 25px; right: 25px; bottom: 50px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      justify-content: center;
+    }
+    .arabic-line {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(80,50,10,0.4), rgba(80,50,10,0.6), rgba(80,50,10,0.4), transparent);
+      border-radius: 1px;
+    }
+    .arabic-line.short { width: 60%; margin: 0 auto; }
+    .arabic-line.medium { width: 85%; margin: 0 auto; }
+    .arabic-line.long { width: 95%; margin: 0 auto; }
+    .arabic-line.gold-line {
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(139,105,20,0.7), rgba(200,160,50,0.9), rgba(139,105,20,0.7), transparent);
+    }
+
+    /* Ornement central du haut */
+    .page-ornament {
+      position: absolute;
+      top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      color: rgba(200,150,30,0.6);
       font-size: 1.5em;
+      color: rgba(139,105,20,0.7);
     }
-    .book-glow-new {
+    .page-ornament-bottom {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1em;
+      color: rgba(139,105,20,0.5);
+    }
+
+    /* Spine du livre (reliure) */
+    .book-spine {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 200px;
-      height: 200px;
-      background: radial-gradient(ellipse, rgba(255,215,0,0.3) 0%, rgba(255,180,0,0.1) 40%, transparent 70%);
-      z-index: 3;
-      animation: glowPulse 3s ease-in-out infinite;
+      width: 40px;
+      height: 85vh;
+      background: linear-gradient(90deg, #1a0a00, #3d1f00, #5c3000, #3d1f00, #1a0a00);
+      box-shadow: 0 0 30px rgba(0,0,0,0.9);
+      z-index: 1;
     }
-    @keyframes bookFloat {
-      0%, 100% { transform: translateY(0px) rotateX(2deg); }
-      50% { transform: translateY(-15px) rotateX(0deg); }
+    .spine-ornament {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--gold2);
+      font-size: 1.2em;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      opacity: 0.6;
     }
-    @keyframes glowPulse {
-      0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
-      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+
+    /* Lumière divine */
+    .divine-light {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(ellipse, rgba(255,215,0,0.15) 0%, rgba(255,180,0,0.08) 30%, transparent 70%);
+      border-radius: 50%;
+      z-index: 2;
+      animation: glow 3s ease-in-out infinite;
     }
-    
     @keyframes glow {
       0%,100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
       50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
@@ -308,7 +312,7 @@
       padding: 30px 20px;
     }
     .bottom-grid {
-      max-width: 95vw;
+      max-width: 900px;
       margin: 0 auto;
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -390,23 +394,17 @@
   </style>
 </head>
 <body>
-<div class="book-bg">
-  <div class="book-open">
-    <div class="book-left">
-      <div class="page-border-new"></div>
-      <div class="page-ornament-new">❧</div>
-      <div class="page-lines"><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div></div>
-    </div>
-    <div class="book-spine-new"></div>
-    <div class="book-glow-new"></div>
-    <div class="book-right">
-      <div class="page-border-new"></div>
-      <div class="page-ornament-new">❧</div>
-      <div class="page-lines"><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div><div class="page-line"></div></div>
-    </div>
-  </div>
-</div>
+<img src="/logo.png" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:300px;opacity:0.15;z-index:0;pointer-events:none;" alt="logo">
 
+<!-- FOND CORAN -->
+<div class="quran-bg">
+  <!-- Page gauche -->
+  <div style="position:fixed;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;z-index:0;pointer-events:none;">
+    <img src="/logo.png" style="width:450px;opacity:0.18;filter:drop-shadow(0 0 40px rgba(255,215,0,0.6)) drop-shadow(0 0 80px rgba(255,180,0,0.3));animation:logoGlow 4s ease-in-out infinite;">
+  </div>
+  <!-- Overlay -->
+  <div class="overlay"></div>
+</div>
 
 <!-- CONTENU -->
 <div class="content">
