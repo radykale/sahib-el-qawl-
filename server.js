@@ -28,13 +28,7 @@ function saveData(data) {
 }
 
 // ── Multer ───────────────────────────────────────────
-const storage = multer.memoryStorage();const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
-  filename: (req, file, cb) => {
-    const name = Date.now() + '-' + file.originalname.replace(/\s/g, '_');
-    cb(null, name);
-  }
-});
+const storage = multer.memoryStorage();
 const upload = multer({ storage, fileFilter: (req, file, cb) => {
   const allowed = ['.mp3', '.wav', '.ogg', '.m4a'];
   const ext = path.extname(file.originalname).toLowerCase();
