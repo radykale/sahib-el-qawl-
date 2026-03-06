@@ -79,7 +79,11 @@ class RadioStream extends EventEmitter {
         this.streamFromUrl(track.url, resolve);
       } else {
         // Fichier local
-        const filePath = path.join(__dirname, 'uploads', track.filename);
+        const if (track.url) {
+  this.streamFromUrl(track.url, resolve);
+} else {
+  resolve();
+}filePath = path.join(__dirname, 'uploads', track.filename);
         if (!fs.existsSync(filePath)) {
           console.log(`❌ Fichier introuvable: ${track.filename}`);
           return resolve();
