@@ -138,7 +138,7 @@ app.post('/api/admin/emission', requireAuth, (req, res) => {
 });
 
 // ── Admin: Upload ─────────────────────────────────────
-app.post('/api/admin/upload', requireAuth,upload.single('audio'), async((req, res)! => {
+app.post('/api/admin/upload', requireAuth,upload.single('audio'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Fichier invalide' });
   const data = loadData();
   const { uploadToCloudinary } = require("./upload-handler");
