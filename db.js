@@ -26,16 +26,22 @@ const emissionSchema = new mongoose.Schema({
   updatedAt: String
 });
 
-const scheduleSchema = new mongoose.Schema({
-  day: String,
-  hour: Number,
-  playlistId: Number
+const programSchema = new mongoose.Schema({
+  id: Number,
+  name: String,
+  playlistId: Number,
+  startTime: String,
+  endTime: String,
+  repeat: { type: String, enum: ['daily', 'weekly', 'once'], default: 'daily' },
+  days: [String],
+  active: { type: Boolean, default: true },
+  createdAt: String
 });
 
 const Track = mongoose.model('Track', trackSchema);
 const Playlist = mongoose.model('Playlist', playlistSchema);
 const Emission = mongoose.model('Emission', emissionSchema);
-const Schedule = mongoose.model('Schedule', scheduleSchema);
+const Program = mongoose.model('Program', programSchema);
 
 async function connectDB() {
   try {
@@ -46,4 +52,4 @@ async function connectDB() {
   }
 }
 
-module.exports = { connectDB, Track, Playlist, Emission, Schedule };
+module.exports = { connectDB, Track, Playlist, Emission, Program };

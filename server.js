@@ -3,7 +3,7 @@ const session = require('express-session');
 const multer = require('multer');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
-const { connectDB, Track, Playlist, Emission, Schedule } = require('./db');
+const { connectDB, Track, Playlist, Emission, Program } = require('./db');
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
@@ -174,13 +174,33 @@ app.get('/api/playlists', async (req, res) => {
 });
 
 app.get('/api/schedule', async (req, res) => {
-  const schedules = await Schedule.find();
-  const result = {};
-  schedules.forEach(s => {
-    if (!result[s.day]) result[s.day] = {};
-    result[s.day][s.hour] = s.playlistId;
+  const programs = await Program.find({ active: true });
+  res.json(programs);
+});
+
+app.post('/api/admin/program', requireAuth, async (req, res) => {
+  const program = await Program.create({
+    id: Date.now(),
+    name: req.body.name,
+    playlistId: req.body.playlistId,
+    startTime: req.body.startTime,
+    endTime: req.body.endTime,
+    repeat: req.body.repeat || 'daily',
+    days: req.body.days || [],
+    active: true,
+    createdAt: new Date().toISOString()
   });
-  res.json(result);
+  res.json({ success: true, program });
+});
+
+app.put('/api/admin/program/:id', requireAuth, async (req, res) => {
+  await Program.findOneAndUpdate({ id: parseInt(req.params.id) }, req.body);
+  res.json({ success: true });
+});
+
+app.delete('/api/admin/program/:id', requireAuth, async (req, res) => {
+  await Program.deleteOne({ id: parseInt(req.params.id) });
+  res.json({ success: true });
 });
 
 app.get('/api/stream/status', (req, res) => res.json(radioStream.getStatus()));
@@ -267,6 +287,36 @@ app.delete('/api/admin/schedule', requireAuth, async (req, res) => {
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin/index.html')));
 
 const PORT = process.env.PORT || 3000;
+
+// ── Scheduler ─────────────────────────────────────────
+async function checkSchedule() {
+  const now = new Date();
+  const currentTime = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const currentDay = days[now.getDay()];
+
+  const programs = await Program.find({ active: true });
+  for (const prog of programs) {
+    if (prog.startTime !== currentTime) continue;
+    if (prog.repeat === 'daily' || 
+        (prog.repeat === 'weekly' && prog.days.includes(currentDay)) ||
+        prog.repeat === 'once') {
+      const playlist = await Playlist.findOne({ $or: [{id: prog.playlistId}, {_id: prog.playlistId}] });
+      if (!playlist) continue;
+      const trackIds = playlist.trackIds;
+      const tracks = await Track.find({ id: { $in: trackIds } });
+      if (tracks.length) {
+        console.log(`📅 Programme: ${prog.name} → ${playlist.name}`);
+        radioStream.updatePlaylist(tracks);
+        if (!radioStream.playing) radioStream.start(tracks);
+      }
+      if (prog.repeat === 'once') {
+        await Program.findOneAndUpdate({ id: prog.id }, { active: false });
+      }
+    }
+  }
+}
+setInterval(checkSchedule, 60000);
 
 connectDB().then(() => {
   startStream();
