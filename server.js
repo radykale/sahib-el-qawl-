@@ -291,9 +291,13 @@ const PORT = process.env.PORT || 3000;
 // ── Scheduler ─────────────────────────────────────────
 async function checkSchedule() {
   const now = new Date();
-  const currentTime = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  // Utiliser l'heure locale du serveur (UTC+1 Paris)
+  const offset = 1; // UTC+1
+  const local = new Date(now.getTime() + offset * 60 * 60 * 1000);
+  const currentTime = String(local.getUTCHours()).padStart(2,'0') + ':' + String(local.getUTCMinutes()).padStart(2,'0');
   const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-  const currentDay = days[now.getDay()];
+  const currentDay = days[local.getUTCDay()];
+  console.log('⏰ Vérification schedule:', currentTime);
 
   const programs = await Program.find({ active: true });
   for (const prog of programs) {
