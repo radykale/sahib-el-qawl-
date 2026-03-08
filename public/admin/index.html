@@ -289,11 +289,53 @@
   <!-- TAB: SCHEDULE -->
   <div class="tab-content" id="tab-schedule">
     <div class="card">
-      <div class="card-title">📅 جدول البرامج الأسبوعي</div>
-      <p style="color:rgba(255,255,255,0.4);font-size:0.85em;margin-bottom:15px;">اضغط على أي خلية لتعيين بلايليست لها</p>
-      <div class="schedule-grid">
-        <table class="schedule-table" id="scheduleTable"></table>
+      <div class="card-title">➕ إضافة برنامج جديد</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">اسم البرنامج</label>
+          <input class="form-input" id="progName" placeholder="مثال: برنامج الفجر">
+        </div>
+        <div class="form-group">
+          <label class="form-label">البلايليست</label>
+          <select class="form-select" id="progPlaylist"></select>
+        </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">وقت البداية</label>
+          <input class="form-input" type="time" id="progStart">
+        </div>
+        <div class="form-group">
+          <label class="form-label">وقت النهاية</label>
+          <input class="form-input" type="time" id="progEnd">
+        </div>
+        <div class="form-group">
+          <label class="form-label">التكرار</label>
+          <select class="form-select" id="progRepeat" onchange="toggleDays()">
+            <option value="daily">كل يوم</option>
+            <option value="weekly">أيام محددة</option>
+            <option value="once">مرة واحدة</option>
+          </select>
+        </div>
+      </div>
+      <div id="daysSelector" style="display:none;margin-bottom:15px;">
+        <label class="form-label">اختر الأيام</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+          <label style="color:white;font-size:0.85em"><input type="checkbox" value="sunday"> الأحد</label>
+          <label style="color:white;font-size:0.85em"><input type="checkbox" value="monday"> الاثنين</label>
+          <label style="color:white;font-size:0.85em"><input type="checkbox" value="tuesday"> الثلاثاء</label>
+          <label style="color:white;font-size:0.85em"><input type="checkbox" value="wednesday"> الأربعاء</label>
+          <label style="color:white;font-size:0.85em"><input type="checkbox" value="thursday"> الخميس</label>
+          <label style="color:white;font-size:0.85em"><input type="checkbox" value="friday"> الجمعة</label>
+          <label style="color:white;font-size:0.85em"><input type="checkbox" value="saturday"> السبت</label>
+        </div>
+      </div>
+      <button class="btn-gold" onclick="createProgram()">✅ حفظ البرنامج</button>
+      <div class="success-msg" id="programMsg"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📅 البرامج المجدولة</div>
+      <div id="programsList"></div>
     </div>
   </div>
 
@@ -318,10 +360,9 @@ const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','satur
 const DAYS_AR = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 let allTracks = [];
 let allPlaylists = [];
-let allSchedule = {};
+let allSchedule = [];
+let allPrograms = [];
 let currentFilter = 'all';
-let modalDay = null;
-let modalHour = null;
 
 // ── AUTH ──────────────────────────────────────────────
 async function login() {
@@ -352,7 +393,7 @@ async function loadAll() {
   await loadEmission();
   await loadTracks();
   await loadPlaylists();
-  await loadSchedule();
+  await loadPrograms();
   renderStats();
 }
 
@@ -375,6 +416,23 @@ async function loadPlaylists() {
   const res = await fetch('/api/playlists');
   allPlaylists = await res.json();
   renderPlaylists();
+  // Remplir le select programme
+  const sel = document.getElementById('progPlaylist');
+  if (sel) {
+    sel.innerHTML = allPlaylists.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  }
+  // Remplir le select modal
+  const modal = document.getElementById('modalPlaylist');
+  if (modal) {
+    modal.innerHTML = '<option value="">— بلا بلايليست —</option>' + 
+      allPlaylists.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  }
+}
+
+async function loadPrograms() {
+  const res = await fetch('/api/schedule');
+  allPrograms = await res.json();
+  renderPrograms();
 }
 
 async function loadSchedule() {
@@ -571,52 +629,68 @@ async function deletePlaylist(id) {
 }
 
 // ── SCHEDULE ──────────────────────────────────────────
-function renderSchedule() {
-  const table = document.getElementById('scheduleTable');
-  let html = '<tr><th>الساعة</th>';
-  DAYS_AR.forEach(d => html += `<th>${d}</th>`);
-  html += '</tr>';
-  for (let h = 0; h < 24; h++) {
-    html += `<tr><td class="hour-col">${String(h).padStart(2,'0')}:00</td>`;
-    DAYS.forEach(day => {
-      const pid = allSchedule[day] && allSchedule[day][h];
-      const playlist = pid && allPlaylists.find(p => p.id == pid);
-      html += `<td onclick="openModal('${day}',${h})">`;
-      if (playlist) html += `<div class="schedule-cell">📋 ${playlist.name}</div>`;
-      else html += `<div class="schedule-empty">+ إضافة</div>`;
-      html += '</td>';
-    });
-    html += '</tr>';
+function renderPrograms() {
+  const list = document.getElementById('programsList');
+  if (!list) return;
+  if (!allPrograms.length) { list.innerHTML = '<div class="empty-msg">لا توجد برامج مجدولة</div>'; return; }
+  const repeatLabel = { daily: 'كل يوم', weekly: 'أيام محددة', once: 'مرة واحدة' };
+  const daysAr = { sunday:'الأحد', monday:'الاثنين', tuesday:'الثلاثاء', wednesday:'الأربعاء', thursday:'الخميس', friday:'الجمعة', saturday:'السبت' };
+  list.innerHTML = allPrograms.map(p => {
+    const playlist = allPlaylists.find(pl => pl.id == p.playlistId);
+    const daysText = p.repeat === 'weekly' ? (p.days || []).map(d => daysAr[d] || d).join('، ') : '';
+    return `
+      <div class="playlist-item">
+        <div class="playlist-header">
+          <div class="playlist-name">📅 ${p.name}</div>
+          <button class="btn-red" onclick="deleteProgram(${p.id})">🗑️ حذف</button>
+        </div>
+        <div style="color:rgba(255,255,255,0.6);font-size:0.85em;margin-top:5px;">
+          ⏰ ${p.startTime} → ${p.endTime} &nbsp;|&nbsp;
+          📋 ${playlist ? playlist.name : 'غير معروف'} &nbsp;|&nbsp;
+          🔁 ${repeatLabel[p.repeat] || p.repeat}
+          ${daysText ? ' (' + daysText + ')' : ''}
+          ${!p.active ? '<span style="color:#ff4444"> (موقف)</span>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleDays() {
+  const repeat = document.getElementById('progRepeat').value;
+  document.getElementById('daysSelector').style.display = repeat === 'weekly' ? 'block' : 'none';
+}
+
+async function createProgram() {
+  const name = document.getElementById('progName').value.trim();
+  const playlistId = parseInt(document.getElementById('progPlaylist').value);
+  const startTime = document.getElementById('progStart').value;
+  const endTime = document.getElementById('progEnd').value;
+  const repeat = document.getElementById('progRepeat').value;
+  const days = [...document.querySelectorAll('#daysSelector input:checked')].map(c => c.value);
+  if (!name || !startTime || !endTime) { alert('أدخل جميع البيانات'); return; }
+  const res = await fetch('/api/admin/program', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, playlistId, startTime, endTime, repeat, days })
+  });
+  if (res.ok) {
+    showMsg('programMsg', '✅ تم حفظ البرنامج!');
+    document.getElementById('progName').value = '';
+    await loadPrograms();
   }
-  table.innerHTML = html;
 }
 
-function openModal(day, hour) {
-  modalDay = day;
-  modalHour = hour;
-  const dayIdx = DAYS.indexOf(day);
-  document.getElementById('modalTitle').textContent = `${DAYS_AR[dayIdx]} — ${String(hour).padStart(2,'0')}:00`;
-  const sel = document.getElementById('modalPlaylist');
-  sel.innerHTML = '<option value="">— بلا بلايليست —</option>' +
-    allPlaylists.map(p => `<option value="${p.id}" ${allSchedule[day]&&allSchedule[day][hour]==p.id?'selected':''}>${p.name}</option>`).join('');
-  document.getElementById('scheduleModal').style.display = 'flex';
+async function deleteProgram(id) {
+  if (!confirm('حذف هذا البرنامج؟')) return;
+  await fetch('/api/admin/program/'+id, { method: 'DELETE' });
+  await loadPrograms();
 }
 
+function renderSchedule() {}
+function openModal() {}
 function closeModal() { document.getElementById('scheduleModal').style.display = 'none'; }
-
-async function saveSchedule() {
-  const playlistId = document.getElementById('modalPlaylist').value;
-  if (playlistId) {
-    await fetch('/api/admin/schedule', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({day:modalDay, hour:modalHour, playlistId}) });
-    if (!allSchedule[modalDay]) allSchedule[modalDay] = {};
-    allSchedule[modalDay][modalHour] = playlistId;
-  } else {
-    await fetch('/api/admin/schedule', { method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({day:modalDay, hour:modalHour}) });
-    if (allSchedule[modalDay]) delete allSchedule[modalDay][modalHour];
-  }
-  closeModal();
-  renderSchedule();
-}
+async function saveSchedule() {}
 
 // ── UTILS ─────────────────────────────────────────────
 function showMsg(id, msg) {
