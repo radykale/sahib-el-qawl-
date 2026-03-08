@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
 const { connectDB, Track, Playlist, Emission, Program } = require('./db');
+const MongoStore = require('connect-mongo');
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
@@ -35,7 +36,13 @@ const upload = multer({ storage: multer.memoryStorage(), fileFilter: (req, file,
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(session({ secret: 'sahib-el-qawl-secret', resave: false, saveUninitialized: false }));
+app.use(session({ 
+  secret: 'sahib-el-qawl-secret', 
+  resave: false, 
+  saveUninitialized: false,
+  store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
+  cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 } // 7 jours
+}));
 app.use(express.static(path.join(__dirname, 'public')));
 
 function requireAuth(req, res, next) {
