@@ -553,6 +553,18 @@
   loadEmission();
   setInterval(loadEmission, 30000);
 
+  async function loadCurrentTrack() {
+    try {
+      const res = await fetch('/api/stream/status');
+      const data = await res.json();
+      if (data.currentTrack) {
+        document.getElementById('emissionTitle').textContent = '🎵 ' + data.currentTrack.title;
+      }
+    } catch(e) {}
+  }
+  loadCurrentTrack();
+  setInterval(loadCurrentTrack, 5000);
+
   function togglePlay() {
     if (!playing) {
       audio.src = '/stream';
