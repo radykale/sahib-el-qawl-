@@ -40,8 +40,11 @@ app.use(session({
   secret: 'sahib-el-qawl-secret', 
   resave: false, 
   saveUninitialized: false,
-  store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
-  cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 } // 7 jours
+  store: MongoStore.create({ 
+    mongoUrl: process.env.MONGODB_URI,
+    ttl: 60 * 60 * 24 * 7
+  }),
+  cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 }
 }));
 app.use(express.static(path.join(__dirname, 'public')));
 
