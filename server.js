@@ -145,7 +145,7 @@ class RadioStream extends EventEmitter {
     this.currentTrack = track;
     this.emit('trackChange', track);
     await this.playBuffer(currentBuffer);
-    this.playNext();
+    setImmediate(() => this.playNext());
   }
 
   playTrack(track) {
