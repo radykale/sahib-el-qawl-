@@ -146,12 +146,21 @@ class RadioStream extends EventEmitter {
   playTrack(track) {
     return new Promise((resolve) => {
       if (!track.url) return resolve();
-      const protocol = track.url.startsWith('https') ? https : require('http');
-      protocol.get(track.url, (response) => {
-        response.on('data', chunk => this.broadcast(chunk));
-        response.on('end', resolve);
-        response.on('error', resolve);
-      }).on('error', resolve);
+      console.log(`▶️ FFmpeg: ${track.title}`);
+      const cmd = ffmpeg(track.url)
+        .noVideo()
+        .audioCodec('libmp3lame')
+        .audioBitrate(128)
+        .audioChannels(2)
+        .audioFrequency(44100)
+        .format('mp3')
+        .on('start', () => console.log('FFmpeg started'))
+        .on('error', (err) => { console.error('FFmpeg error:', err.message); resolve(); })
+        .on('end', () => { console.log('FFmpeg end'); resolve(); });
+      const stream = cmd.pipe();
+      stream.on('data', chunk => this.broadcast(chunk));
+      stream.on('end', resolve);
+      stream.on('error', resolve);
     });
   }
 
