@@ -85,6 +85,39 @@ class RadioStream extends EventEmitter {
     });
   }
 
+  async fetchTrack(track) {
+    return new Promise((resolve, reject) => {
+      if (!track || !track.url) return resolve(Buffer.alloc(0));
+      const protocol = track.url.startsWith('https') ? https : require('http');
+      const chunks = [];
+      protocol.get(track.url, (response) => {
+        response.on('data', chunk => chunks.push(chunk));
+        response.on('end', () => resolve(Buffer.concat(chunks)));
+        response.on('error', reject);
+      }).on('error', reject);
+    });
+  }
+
+  async playBuffer(buffer) {
+    return new Promise((resolve) => {
+      const BITRATE = 128 * 1024 / 8;
+      const CHUNK_SIZE = 16384;
+      const INTERVAL = (CHUNK_SIZE / BITRATE) * 1000;
+      let offset = 0;
+      const tick = () => {
+        if (offset + CHUNK_SIZE <= buffer.length) {
+          this.broadcast(buffer.slice(offset, offset + CHUNK_SIZE));
+          offset += CHUNK_SIZE;
+          setTimeout(tick, INTERVAL);
+        } else {
+          if (offset < buffer.length) this.broadcast(buffer.slice(offset));
+          resolve();
+        }
+      };
+      tick();
+    });
+  }
+
   async playNext() {
     if (!this.playlist.length) {
       console.log('⚠️ Aucune piste — en attente de fichiers audio');
@@ -94,7 +127,8 @@ class RadioStream extends EventEmitter {
     if (this.trackCount > 0 && this.trackCount % this.jingleInterval === 0 && this.jingles.length) {
       const jingle = this.jingles[Math.floor(Math.random() * this.jingles.length)];
       console.log(`🎺 Jingle: ${jingle.title}`);
-      await this.playTrack(jingle);
+      const buf = await this.fetchTrack(jingle);
+      await this.playBuffer(buf);
     }
     const track = this.playlist[this.trackIndex];
     this.trackIndex = (this.trackIndex + 1) % this.playlist.length;
@@ -102,54 +136,20 @@ class RadioStream extends EventEmitter {
     console.log(`🎵 En cours: ${track.title}`);
     this.currentTrack = track;
     this.emit('trackChange', track);
-    await this.playTrack(track);
+
+    // Précharger la piste suivante pendant que la courante joue
+    const nextTrack = this.playlist[this.trackIndex];
+    const [currentBuffer, nextBuffer] = await Promise.all([
+      this.fetchTrack(track),
+      this.fetchTrack(nextTrack)
+    ]);
+    this.prefetchedBuffer = { track: nextTrack, buffer: nextBuffer };
+    await this.playBuffer(currentBuffer);
     this.playNext();
   }
 
   playTrack(track) {
-    return new Promise((resolve) => {
-      if (!track.url) return resolve();
-      const protocol = track.url.startsWith('https') ? https : require('http');
-      protocol.get(track.url, (response) => {
-        const BITRATE = 128 * 1024 / 8; // 128kbps en bytes/sec
-        const CHUNK_SIZE = 16384;
-        const INTERVAL = (CHUNK_SIZE / BITRATE) * 1000; // ms entre chunks
-        let buffer = Buffer.alloc(0);
-        let finished = false;
-        let sending = false;
-
-        const sendChunks = () => {
-          if (sending) return;
-          sending = true;
-          const tick = () => {
-            if (buffer.length >= CHUNK_SIZE) {
-              this.broadcast(buffer.slice(0, CHUNK_SIZE));
-              buffer = buffer.slice(CHUNK_SIZE);
-              setTimeout(tick, INTERVAL);
-            } else if (finished) {
-              if (buffer.length > 0) this.broadcast(buffer);
-              resolve();
-            } else {
-              sending = false;
-            }
-          };
-          tick();
-        };
-
-        response.on('data', chunk => {
-          buffer = Buffer.concat([buffer, chunk]);
-          sendChunks();
-        });
-        response.on('end', () => {
-          finished = true;
-          if (!sending) {
-            if (buffer.length > 0) this.broadcast(buffer);
-            resolve();
-          }
-        });
-        response.on('error', resolve);
-      }).on('error', resolve);
-    });
+    return this.fetchTrack(track).then(buf => this.playBuffer(buf));
   }
 
   start(tracks) {
