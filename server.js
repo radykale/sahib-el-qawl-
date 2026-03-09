@@ -133,10 +133,6 @@ class RadioStream extends EventEmitter {
     const track = this.playlist[this.trackIndex];
     this.trackIndex = (this.trackIndex + 1) % this.playlist.length;
     this.trackCount++;
-    console.log(`🎵 En cours: ${track.title}`);
-    this.currentTrack = track;
-    this.emit('trackChange', track);
-
     // Précharger la piste suivante pendant que la courante joue
     const nextTrack = this.playlist[this.trackIndex];
     const [currentBuffer, nextBuffer] = await Promise.all([
@@ -144,6 +140,10 @@ class RadioStream extends EventEmitter {
       this.fetchTrack(nextTrack)
     ]);
     this.prefetchedBuffer = { track: nextTrack, buffer: nextBuffer };
+    // Afficher le titre seulement quand le son commence
+    console.log(`🎵 En cours: ${track.title}`);
+    this.currentTrack = track;
+    this.emit('trackChange', track);
     await this.playBuffer(currentBuffer);
     this.playNext();
   }
