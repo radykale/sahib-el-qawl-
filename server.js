@@ -115,19 +115,35 @@ class RadioStream extends EventEmitter {
         const CHUNK_SIZE = 16384;
         const INTERVAL = (CHUNK_SIZE / BITRATE) * 1000; // ms entre chunks
         let buffer = Buffer.alloc(0);
-        response.on('data', chunk => {
-          buffer = Buffer.concat([buffer, chunk]);
-          const sendChunk = () => {
+        let finished = false;
+        let sending = false;
+
+        const sendChunks = () => {
+          if (sending) return;
+          sending = true;
+          const tick = () => {
             if (buffer.length >= CHUNK_SIZE) {
               this.broadcast(buffer.slice(0, CHUNK_SIZE));
               buffer = buffer.slice(CHUNK_SIZE);
-              setTimeout(sendChunk, INTERVAL);
+              setTimeout(tick, INTERVAL);
+            } else if (finished) {
+              if (buffer.length > 0) this.broadcast(buffer);
+              resolve();
+            } else {
+              sending = false;
             }
           };
-          sendChunk();
+          tick();
+        };
+
+        response.on('data', chunk => {
+          buffer = Buffer.concat([buffer, chunk]);
+          sendChunks();
         });
         response.on('end', () => {
-          if (buffer.length > 0) this.broadcast(buffer);
+          finished = true;
+          if (!sending) {
+            if (buffer.length > 0) this.broadcast(buffer);
           resolve();
         });
         response.on('error', resolve);
