@@ -144,7 +144,8 @@ class RadioStream extends EventEmitter {
           finished = true;
           if (!sending) {
             if (buffer.length > 0) this.broadcast(buffer);
-          resolve();
+            resolve();
+          }
         });
         response.on('error', resolve);
       }).on('error', resolve);
