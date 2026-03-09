@@ -127,29 +127,31 @@ class RadioStream extends EventEmitter {
     if (this.trackCount > 0 && this.trackCount % this.jingleInterval === 0 && this.jingles.length) {
       const jingle = this.jingles[Math.floor(Math.random() * this.jingles.length)];
       console.log(`🎺 Jingle: ${jingle.title}`);
-      const buf = await this.fetchTrack(jingle);
-      await this.playBuffer(buf);
+      await this.playTrack(jingle);
     }
     const track = this.playlist[this.trackIndex];
     this.trackIndex = (this.trackIndex + 1) % this.playlist.length;
     this.trackCount++;
-    // Précharger la piste suivante pendant que la courante joue
-    const nextTrack = this.playlist[this.trackIndex];
-    const [currentBuffer, nextBuffer] = await Promise.all([
-      this.fetchTrack(track),
-      this.fetchTrack(nextTrack)
-    ]);
-    this.prefetchedBuffer = { track: nextTrack, buffer: nextBuffer };
-    // Afficher le titre seulement quand le son commence
     console.log(`🎵 En cours: ${track.title}`);
     this.currentTrack = track;
     this.emit('trackChange', track);
-    await this.playBuffer(currentBuffer);
+    await this.playTrack(track);
     setImmediate(() => this.playNext());
   }
 
   playTrack(track) {
-    return this.fetchTrack(track).then(buf => this.playBuffer(buf));
+    return new Promise((resolve) => {
+      if (!track.url) return resolve();
+      const protocol = track.url.startsWith('https') ? https : require('http');
+      protocol.get(track.url, (response) => {
+        const BITRATE = 128 * 1024 / 8;
+        const CHUNK_SIZE = 16384;
+        const INTERVAL = (CHUNK_SIZE / BITRATE) * 1000;
+        response.on('data', chunk => this.broadcast(chunk));
+        response.on('end', resolve);
+        response.on('error', resolve);
+      }).on('error', resolve);
+    });
   }
 
   start(tracks) {
