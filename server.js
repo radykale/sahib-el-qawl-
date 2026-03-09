@@ -144,30 +144,10 @@ class RadioStream extends EventEmitter {
       if (!track.url) return resolve();
       const protocol = track.url.startsWith('https') ? https : require('http');
       protocol.get(track.url, (response) => {
-        const BITRATE = 128 * 1024 / 8;
-        const CHUNK_SIZE = 16384;
-        const INTERVAL = (CHUNK_SIZE / BITRATE) * 1000;
-        let buffer = Buffer.alloc(0);
-        let finished = false;
-        let timer = null;
-
-        const tick = () => {
-          if (buffer.length >= CHUNK_SIZE) {
-            this.broadcast(buffer.slice(0, CHUNK_SIZE));
-            buffer = buffer.slice(CHUNK_SIZE);
-            timer = setTimeout(tick, INTERVAL);
-          } else if (finished) {
-            if (buffer.length > 0) this.broadcast(buffer);
-            resolve();
-          } else {
-            timer = setTimeout(tick, INTERVAL / 2);
-          }
-        };
-
-        response.on('data', chunk => { buffer = Buffer.concat([buffer, chunk]); });
-        response.on('end', () => { finished = true; });
+        response.pipe({ write: (chunk) => this.broadcast(chunk), on: () => {} });
+        response.on('data', chunk => this.broadcast(chunk));
+        response.on('end', resolve);
         response.on('error', resolve);
-        timer = setTimeout(tick, INTERVAL);
       }).on('error', resolve);
     });
   }
