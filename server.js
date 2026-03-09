@@ -144,7 +144,6 @@ class RadioStream extends EventEmitter {
       if (!track.url) return resolve();
       const protocol = track.url.startsWith('https') ? https : require('http');
       protocol.get(track.url, (response) => {
-        response.pipe({ write: (chunk) => this.broadcast(chunk), on: () => {} });
         response.on('data', chunk => this.broadcast(chunk));
         response.on('end', resolve);
         response.on('error', resolve);
